@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { Menu } from "lucide-react"
 import { getEnabledApps, platformNav } from "@/platform/config/apps.registry"
 import { signOut } from "@/platform/auth/actions"
+import { ThemeToggle } from "@/platform/theme/theme-toggle"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -105,10 +106,11 @@ export const Sidebar = ({ userEmail, displayName }: SidebarProps) => {
   return (
     <>
       <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar md:flex md:flex-col">
-        <div className="flex h-14 items-center px-5">
+        <div className="flex h-14 items-center justify-between gap-2 px-5">
           <Link href="/dashboard" className="text-sm font-semibold tracking-tight">
             My OS
           </Link>
+          <ThemeToggle />
         </div>
         <Separator />
         <nav className="flex-1 overflow-y-auto p-3">
@@ -125,34 +127,37 @@ export const Sidebar = ({ userEmail, displayName }: SidebarProps) => {
         </div>
       </aside>
 
-      <div className="flex h-14 items-center justify-between border-b px-4 md:hidden">
+      <div className="flex h-14 w-full shrink-0 items-center justify-between border-b px-4 md:hidden">
         <Link href="/dashboard" className="text-sm font-semibold tracking-tight">
           My OS
         </Link>
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger
-            render={<Button variant="outline" size="icon-sm" aria-label="Open menu" />}
-          >
-            <Menu className="size-4" />
-          </SheetTrigger>
-          <SheetContent side="left" className="flex w-72 flex-col p-0">
-            <SheetHeader className="border-b px-4 py-3">
-              <SheetTitle>My OS</SheetTitle>
-            </SheetHeader>
-            <div className="flex-1 overflow-y-auto p-3">
-              <NavLinks onNavigate={() => setOpen(false)} />
-            </div>
-            <div className="border-t p-4">
-              <p className="truncate text-sm font-medium">{displayName || "User"}</p>
-              <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
-              <form action={signOut} className="mt-3">
-                <Button type="submit" variant="outline" size="sm" className="w-full">
-                  Sign out
-                </Button>
-              </form>
-            </div>
-          </SheetContent>
-        </Sheet>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger
+              render={<Button variant="outline" size="icon-sm" aria-label="Open menu" />}
+            >
+              <Menu className="size-4" />
+            </SheetTrigger>
+            <SheetContent side="left" className="flex w-72 flex-col p-0">
+              <SheetHeader className="border-b px-4 py-3">
+                <SheetTitle>My OS</SheetTitle>
+              </SheetHeader>
+              <div className="flex-1 overflow-y-auto p-3">
+                <NavLinks onNavigate={() => setOpen(false)} />
+              </div>
+              <div className="border-t p-4">
+                <p className="truncate text-sm font-medium">{displayName || "User"}</p>
+                <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
+                <form action={signOut} className="mt-3">
+                  <Button type="submit" variant="outline" size="sm" className="w-full">
+                    Sign out
+                  </Button>
+                </form>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
       </div>
     </>
   )

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { ThemeSelector } from "@/platform/theme/theme-selector"
 import {
   Card,
   CardContent,
@@ -54,6 +55,18 @@ const SettingsPage = async () => {
                 : "—"}
             </span>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+          <CardDescription>
+            Choose how My OS looks on this device. Your choice is saved locally.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ThemeSelector />
         </CardContent>
       </Card>
     </div>
