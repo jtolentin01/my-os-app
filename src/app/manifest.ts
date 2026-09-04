@@ -2,11 +2,14 @@ import type { MetadataRoute } from "next"
 
 const manifest = (): MetadataRoute.Manifest => {
   return {
+    id: "/",
     name: "My OS",
     short_name: "My OS",
     description: "Your life. Your system.",
-    start_url: "/dashboard",
+    start_url: "/",
+    scope: "/",
     display: "standalone",
+    display_override: ["standalone", "browser"],
     background_color: "#ffffff",
     theme_color: "#0a0a0a",
     orientation: "portrait-primary",

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { ThemeSelector } from "@/platform/theme/theme-selector"
+import { InstallAppCard } from "@/platform/pwa/install-app-card"
 import {
   Card,
   CardContent,
@@ -67,6 +68,18 @@ const SettingsPage = async () => {
         </CardHeader>
         <CardContent>
           <ThemeSelector />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Install app</CardTitle>
+          <CardDescription>
+            Add My OS to your home screen so it opens like a standalone app.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <InstallAppCard />
         </CardContent>
       </Card>
     </div>
