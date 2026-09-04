@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server"
 import { getEnabledApps } from "@/platform/config/apps.registry"
 import { getOrCreateMealPlan } from "@/apps/diet/services/meals"
 import { formatWeekRange } from "@/apps/diet/utils/week"
+import { getRecentNotes } from "@/apps/notes/services/notes"
+import { toPlainNoteText } from "@/apps/notes/utils/content"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
@@ -34,6 +36,7 @@ const DashboardPage = async () => {
 
   let mealCount = 0
   let weekLabel = ""
+  let recentNotes: Awaited<ReturnType<typeof getRecentNotes>> = []
 
   try {
     const plan = await getOrCreateMealPlan()
@@ -41,6 +44,12 @@ const DashboardPage = async () => {
     weekLabel = formatWeekRange(plan.week_start)
   } catch {
     mealCount = 0
+  }
+
+  try {
+    recentNotes = await getRecentNotes(3)
+  } catch {
+    recentNotes = []
   }
 
   const apps = getEnabledApps()
@@ -56,8 +65,8 @@ const DashboardPage = async () => {
           {greeting}, {displayName}
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          This is your personal operating system. Diet is available now — more life apps will plug
-          into this same space.
+          This is your personal operating system. Diet and Notes are available now — more life
+          apps will plug into this same space.
         </p>
       </div>
 
@@ -82,10 +91,43 @@ const DashboardPage = async () => {
 
         <Card>
           <CardHeader>
+            <CardTitle>Recent notes</CardTitle>
+            <CardDescription>Your latest captured thoughts</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {recentNotes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No notes yet. Capture an idea in Notes.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {recentNotes.map((note) => {
+                  const preview = toPlainNoteText(note.content)
+                  return (
+                  <div key={note.id} className="rounded-lg border px-3 py-2">
+                    <p className="truncate text-sm font-medium">{note.title}</p>
+                    {preview ? (
+                      <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+                        {preview}
+                      </p>
+                    ) : null}
+                  </div>
+                  )
+                })}
+              </div>
+            )}
+            <Link href="/notes" className={cn(buttonVariants(), "w-fit")}>
+              Open Notes
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
             <CardTitle>Installed apps</CardTitle>
             <CardDescription>Modules available in your My OS</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
+          <CardContent className="grid gap-3 sm:grid-cols-2">
             {apps.map((app) => {
               const Icon = app.icon
               return (

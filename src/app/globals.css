@@ -128,3 +128,138 @@
     @apply font-sans;
   }
 }
+
+.note-editor p,
+.note-content p {
+  margin: 0.35em 0;
+}
+
+.note-editor p:first-child,
+.note-content p:first-child {
+  margin-top: 0;
+}
+
+.note-editor p:last-child,
+.note-content p:last-child {
+  margin-bottom: 0;
+}
+
+.note-editor strong,
+.note-content strong,
+.note-editor b,
+.note-content b {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.note-editor em,
+.note-content em,
+.note-editor i,
+.note-content i {
+  font-style: italic;
+}
+
+.note-editor u,
+.note-content u {
+  text-decoration: underline;
+}
+
+.note-editor s,
+.note-content s,
+.note-editor del,
+.note-content del {
+  text-decoration: line-through;
+}
+
+.note-editor mark,
+.note-content mark {
+  border-radius: 0.2rem;
+  background: oklch(0.93 0.12 95);
+  color: inherit;
+  padding: 0.05em 0.2em;
+}
+
+.dark .note-editor mark,
+.dark .note-content mark {
+  background: oklch(0.45 0.1 95);
+}
+
+.note-editor ul,
+.note-content ul,
+.note-editor ol,
+.note-content ol {
+  margin: 0.5em 0;
+  padding-left: 0;
+  list-style: none !important;
+}
+
+.note-editor ul > li,
+.note-content ul > li,
+.note-editor ol > li,
+.note-content ol > li {
+  position: relative;
+  display: block !important;
+  margin: 0.3em 0;
+  padding-left: 1.25rem;
+}
+
+.note-editor ul > li::before,
+.note-content ul > li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--foreground);
+  font-weight: 700;
+  line-height: inherit;
+}
+
+.note-editor ol,
+.note-content ol {
+  counter-reset: note-list;
+}
+
+.note-editor ol > li,
+.note-content ol > li {
+  counter-increment: note-list;
+  padding-left: 1.5rem;
+}
+
+.note-editor ol > li::before,
+.note-content ol > li::before {
+  content: counter(note-list) ".";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+  line-height: inherit;
+}
+
+.note-editor li p,
+.note-content li p {
+  margin: 0;
+}
+
+.note-editor blockquote,
+.note-content blockquote {
+  margin: 0.6em 0;
+  border-left: 3px solid var(--border);
+  padding-left: 0.85rem;
+  color: var(--muted-foreground);
+}
+
+.note-editor a,
+.note-content a {
+  color: var(--foreground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.note-editor p.is-editor-empty:first-child::before {
+  color: var(--muted-foreground);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}

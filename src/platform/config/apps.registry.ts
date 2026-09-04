@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react"
-import { LayoutDashboard, Salad, Settings } from "lucide-react"
+import { LayoutDashboard, NotebookPen, Salad, Settings } from "lucide-react"
 
 export type AppDefinition = {
   id: string
@@ -35,6 +35,15 @@ export const appsRegistry: AppDefinition[] = [
     icon: Salad,
     enabled: true,
     navOrder: 1,
+  },
+  {
+    id: "notes",
+    name: "Notes",
+    description: "Simple personal notes and ideas",
+    href: "/notes",
+    icon: NotebookPen,
+    enabled: true,
+    navOrder: 2,
   },
 ]
 

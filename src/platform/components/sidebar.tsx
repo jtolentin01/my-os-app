@@ -127,7 +127,7 @@ export const Sidebar = ({ userEmail, displayName }: SidebarProps) => {
         </div>
       </aside>
 
-      <div className="flex h-14 w-full shrink-0 items-center justify-between border-b px-4 md:hidden">
+      <div className="sticky top-0 z-20 flex h-14 w-full shrink-0 items-center justify-between border-b bg-background px-4 md:hidden">
         <Link href="/dashboard" className="text-sm font-semibold tracking-tight">
           My OS
         </Link>
