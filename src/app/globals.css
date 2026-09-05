@@ -134,6 +134,10 @@
   margin: 0.35em 0;
 }
 
+.note-content p:empty::before {
+  content: "\00a0";
+}
+
 .note-editor p:first-child,
 .note-content p:first-child {
   margin-top: 0;

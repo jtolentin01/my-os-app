@@ -71,6 +71,7 @@ export const createNote = async (input: CreateNoteInput) => {
   const { data, error } = await supabase
     .from("notes")
     .insert({
+      ...(input.id ? { id: input.id } : {}),
       user_id: userId,
       title: input.title,
       content: sanitizeNoteHtml(input.content),

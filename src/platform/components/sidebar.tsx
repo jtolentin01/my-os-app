@@ -18,6 +18,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 
+import { useOnlineStatus } from "@/platform/offline/use-online-status"
+
 type SidebarProps = {
   userEmail?: string | null
   displayName?: string | null
@@ -25,6 +27,7 @@ type SidebarProps = {
 
 const NavLinks = ({ onNavigate }: { onNavigate?: () => void }) => {
   const pathname = usePathname()
+  const isOnline = useOnlineStatus()
   const apps = getEnabledApps()
   const primary = platformNav.filter((item) => item.id === "dashboard")
   const secondary = platformNav.filter((item) => item.id === "settings")
@@ -39,22 +42,30 @@ const NavLinks = ({ onNavigate }: { onNavigate?: () => void }) => {
     )
   }
 
+  const renderLink = (href: string, label: string, icon: React.ReactNode) => {
+    if (!isOnline) {
+      return (
+        <a key={href} href={href} onClick={onNavigate} className={linkClass(href)}>
+          {icon}
+          {label}
+        </a>
+      )
+    }
+
+    return (
+      <Link key={href} href={href} onClick={onNavigate} className={linkClass(href)}>
+        {icon}
+        {label}
+      </Link>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         {primary.map((item) => {
           const Icon = item.icon
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              onClick={onNavigate}
-              className={linkClass(item.href)}
-            >
-              <Icon className="size-4" />
-              {item.name}
-            </Link>
-          )
+          return renderLink(item.href, item.name, <Icon className="size-4" />)
         })}
       </div>
 
@@ -65,17 +76,7 @@ const NavLinks = ({ onNavigate }: { onNavigate?: () => void }) => {
         <div className="flex flex-col gap-1">
           {apps.map((app) => {
             const Icon = app.icon
-            return (
-              <Link
-                key={app.id}
-                href={app.href}
-                onClick={onNavigate}
-                className={linkClass(app.href)}
-              >
-                <Icon className="size-4" />
-                {app.name}
-              </Link>
-            )
+            return renderLink(app.href, app.name, <Icon className="size-4" />)
           })}
         </div>
       </div>
@@ -83,17 +84,7 @@ const NavLinks = ({ onNavigate }: { onNavigate?: () => void }) => {
       <div className="flex flex-col gap-1">
         {secondary.map((item) => {
           const Icon = item.icon
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              onClick={onNavigate}
-              className={linkClass(item.href)}
-            >
-              <Icon className="size-4" />
-              {item.name}
-            </Link>
-          )
+          return renderLink(item.href, item.name, <Icon className="size-4" />)
         })}
       </div>
     </div>
@@ -105,7 +96,7 @@ export const Sidebar = ({ userEmail, displayName }: SidebarProps) => {
 
   return (
     <>
-      <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar md:flex md:flex-col">
+      <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar md:flex md:h-full md:flex-col">
         <div className="flex h-14 items-center justify-between gap-2 px-5">
           <Link href="/dashboard" className="text-sm font-semibold tracking-tight">
             My OS

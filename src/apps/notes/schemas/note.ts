@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 export const createNoteSchema = z.object({
+  id: z.string().uuid().optional(),
   title: z.string().trim().min(1, "Title is required").max(160),
   content: z.string().trim().max(50000).optional(),
   isPinned: z.coerce.boolean().optional(),

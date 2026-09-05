@@ -1,5 +1,8 @@
 import sanitizeHtml from "sanitize-html"
-import { isEmptyNoteHtml } from "@/apps/notes/utils/content"
+import {
+  isEmptyNoteHtml,
+  preserveBlankParagraphs,
+} from "@/apps/notes/utils/content"
 
 const ALLOWED_TAGS = [
   "p",
@@ -26,25 +29,29 @@ export const sanitizeNoteHtml = (html?: string | null) => {
     return ""
   }
 
-  return sanitizeHtml(html ?? "", {
-    allowedTags: ALLOWED_TAGS,
-    allowedAttributes: {
-      a: ["href", "target", "rel", "class"],
-      span: ["class"],
-      mark: ["class"],
-      p: ["class"],
-    },
-    allowedSchemes: ["http", "https", "mailto"],
-    allowProtocolRelative: false,
-    transformTags: {
-      a: (_tagName, attribs) => ({
-        tagName: "a",
-        attribs: {
-          ...attribs,
-          rel: "noopener noreferrer nofollow",
-          target: "_blank",
-        },
-      }),
-    },
-  })
+  const prepared = preserveBlankParagraphs(html ?? "")
+
+  return preserveBlankParagraphs(
+    sanitizeHtml(prepared, {
+      allowedTags: ALLOWED_TAGS,
+      allowedAttributes: {
+        a: ["href", "target", "rel", "class"],
+        span: ["class"],
+        mark: ["class"],
+        p: ["class"],
+      },
+      allowedSchemes: ["http", "https", "mailto"],
+      allowProtocolRelative: false,
+      transformTags: {
+        a: (_tagName, attribs) => ({
+          tagName: "a",
+          attribs: {
+            ...attribs,
+            rel: "noopener noreferrer nofollow",
+            target: "_blank",
+          },
+        }),
+      },
+    })
+  )
 }

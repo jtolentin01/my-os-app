@@ -1,5 +1,12 @@
-import Link from "next/link"
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { NoteCard, NoteEditorDialog } from "@/apps/notes/components/note-form"
+import {
+  NotesOfflineProvider,
+  useNotesOffline,
+} from "@/apps/notes/offline/notes-offline-provider"
 import type { Note } from "@/apps/notes/types"
 import { Input } from "@/components/ui/input"
 import { buttonVariants } from "@/components/ui/button"
@@ -10,7 +17,26 @@ type NotesWorkspaceProps = {
   query?: string
 }
 
-export const NotesWorkspace = ({ notes, query = "" }: NotesWorkspaceProps) => {
+const filterNotes = (notes: Note[], query: string) => {
+  const trimmed = query.trim().toLowerCase()
+  if (!trimmed) return notes
+  return notes.filter(
+    (note) =>
+      note.title.toLowerCase().includes(trimmed) ||
+      note.content.toLowerCase().includes(trimmed)
+  )
+}
+
+const NotesWorkspaceContent = ({ query = "" }: { query?: string }) => {
+  const router = useRouter()
+  const { notes, isOnline, isSyncing, pendingCount } = useNotesOffline()
+  const [search, setSearch] = useState(query)
+  const visibleNotes = filterNotes(notes, search)
+
+  useEffect(() => {
+    setSearch(query)
+  }, [query])
+
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
       <div className="sticky top-14 z-10 -mx-4 flex flex-col gap-4 border-b bg-background/95 px-4 py-4 backdrop-blur-sm md:static md:top-auto md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
@@ -24,7 +50,36 @@ export const NotesWorkspace = ({ notes, query = "" }: NotesWorkspaceProps) => {
           <NoteEditorDialog />
         </div>
 
-        <form className="flex min-w-0 flex-wrap gap-2" action="/notes" method="get">
+        {!isOnline ? (
+          <div className="rounded-lg border border-dashed bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+            You're offline. Notes are available on this device
+            {pendingCount > 0
+              ? ` · ${pendingCount} change${pendingCount === 1 ? "" : "s"} saved locally`
+              : ""}
+            .
+          </div>
+        ) : null}
+
+        {isOnline && (isSyncing || pendingCount > 0) ? (
+          <div className="rounded-lg border border-dashed bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+            {isSyncing
+              ? "Syncing local changes…"
+              : `${pendingCount} local change${pendingCount === 1 ? "" : "s"} waiting to sync`}
+          </div>
+        ) : null}
+
+        <form
+          className="flex min-w-0 flex-wrap gap-2"
+          onSubmit={(event) => {
+            event.preventDefault()
+            const formData = new FormData(event.currentTarget)
+            const nextQuery = String(formData.get("q") ?? "").trim()
+            setSearch(nextQuery)
+            if (isOnline) {
+              router.push(nextQuery ? `/notes?q=${encodeURIComponent(nextQuery)}` : "/notes")
+            }
+          }}
+        >
           <Input
             name="q"
             defaultValue={query}
@@ -34,32 +89,51 @@ export const NotesWorkspace = ({ notes, query = "" }: NotesWorkspaceProps) => {
           <button type="submit" className={cn(buttonVariants({ variant: "outline" }))}>
             Search
           </button>
-          {query ? (
-            <Link href="/notes" className={cn(buttonVariants({ variant: "ghost" }))}>
+          {search ? (
+            <button
+              type="button"
+              className={cn(buttonVariants({ variant: "ghost" }))}
+              onClick={() => {
+                setSearch("")
+                if (isOnline) {
+                  router.push("/notes")
+                }
+              }}
+            >
               Clear
-            </Link>
+            </button>
           ) : null}
         </form>
       </div>
 
-      {notes.length === 0 ? (
+      {visibleNotes.length === 0 ? (
         <div className="rounded-xl border border-dashed px-4 py-12 text-center">
           <p className="text-sm font-medium">
-            {query ? "No notes matched your search." : "No notes yet"}
+            {search ? "No notes matched your search." : "No notes yet"}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {query
+            {search
               ? "Try a different keyword or clear the search."
-              : "Create your first note to get started."}
+              : isOnline
+                ? "Create your first note to get started."
+                : "Notes you create offline will sync when you're back online."}
           </p>
         </div>
       ) : (
         <div className="grid gap-3">
-          {notes.map((note) => (
+          {visibleNotes.map((note) => (
             <NoteCard key={note.id} note={note} />
           ))}
         </div>
       )}
     </div>
+  )
+}
+
+export const NotesWorkspace = ({ notes, query = "" }: NotesWorkspaceProps) => {
+  return (
+    <NotesOfflineProvider initialNotes={notes}>
+      <NotesWorkspaceContent query={query} />
+    </NotesOfflineProvider>
   )
 }

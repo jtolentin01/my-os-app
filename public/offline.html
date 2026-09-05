@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <title>Offline · My OS</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        padding: 1.5rem;
+        background: #fafafa;
+        color: #0a0a0a;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #0a0a0a;
+          color: #fafafa;
+        }
+      }
+      main {
+        width: min(28rem, 100%);
+        text-align: center;
+      }
+      h1 {
+        margin: 0 0 0.5rem;
+        font-size: 1.5rem;
+        letter-spacing: -0.02em;
+      }
+      p {
+        margin: 0;
+        color: #737373;
+        line-height: 1.5;
+        font-size: 0.95rem;
+      }
+      a {
+        display: inline-block;
+        margin-top: 1.25rem;
+        padding: 0.65rem 1rem;
+        border-radius: 0.6rem;
+        background: #0a0a0a;
+        color: #fff;
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+      @media (prefers-color-scheme: dark) {
+        a {
+          background: #fafafa;
+          color: #0a0a0a;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>You're offline</h1>
+      <p>
+        My OS can't reach the network right now. You can still open Notes if you've visited
+        them before.
+      </p>
+      <a href="/notes">Open Notes</a>
+    </main>
+  </body>
+</html>

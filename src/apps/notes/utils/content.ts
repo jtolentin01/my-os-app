@@ -8,6 +8,9 @@ export const isEmptyNoteHtml = (html?: string | null) => {
   return text.length === 0
 }
 
+export const preserveBlankParagraphs = (html: string) =>
+  html.replace(/<p([^>]*)>(?:\s|&nbsp;)*<\/p>/gi, "<p$1><br></p>")
+
 export const toPlainNoteText = (html?: string | null) => {
   if (!html) return ""
   return html
