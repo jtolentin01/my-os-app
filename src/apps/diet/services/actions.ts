@@ -12,12 +12,17 @@ import {
 } from "@/apps/diet/schemas/meal"
 
 export const createMealAction = async (formData: FormData) => {
+  const remindAtRaw = formData.get("remindAt")
   const parsed = createMealSchema.safeParse({
     mealPlanId: formData.get("mealPlanId"),
     dayOfWeek: formData.get("dayOfWeek"),
     mealType: formData.get("mealType"),
     title: formData.get("title"),
     notes: formData.get("notes") || undefined,
+    remindAt:
+      typeof remindAtRaw === "string" && remindAtRaw.length > 0
+        ? remindAtRaw
+        : null,
   })
 
   if (!parsed.success) {
@@ -36,11 +41,16 @@ export const createMealAction = async (formData: FormData) => {
 }
 
 export const updateMealAction = async (formData: FormData) => {
+  const remindAtRaw = formData.get("remindAt")
   const parsed = updateMealSchema.safeParse({
     id: formData.get("id"),
     title: formData.get("title"),
     mealType: formData.get("mealType"),
     notes: formData.get("notes") || undefined,
+    remindAt:
+      typeof remindAtRaw === "string" && remindAtRaw.length > 0
+        ? remindAtRaw
+        : null,
   })
 
   if (!parsed.success) {

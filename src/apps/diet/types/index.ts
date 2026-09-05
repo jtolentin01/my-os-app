@@ -31,6 +31,8 @@ export type Meal = {
   title: string
   notes: string | null
   sort_order: number
+  remind_at: string | null
+  reminder_sent_at: string | null
   created_at: string
   updated_at: string
 }

@@ -95,6 +95,7 @@ export const createMeal = async (input: {
   mealType: string
   title: string
   notes?: string
+  remindAt?: string | null
 }) => {
   const supabase = await createClient()
   const userId = await getCurrentUserId()
@@ -108,6 +109,8 @@ export const createMeal = async (input: {
       meal_type: input.mealType,
       title: input.title,
       notes: input.notes || null,
+      remind_at: input.remindAt || null,
+      reminder_sent_at: null,
     })
     .select("*")
     .single()
@@ -124,6 +127,7 @@ export const updateMeal = async (input: {
   title: string
   mealType: string
   notes?: string
+  remindAt?: string | null
 }) => {
   const supabase = await createClient()
   const userId = await getCurrentUserId()
@@ -134,6 +138,8 @@ export const updateMeal = async (input: {
       title: input.title,
       meal_type: input.mealType,
       notes: input.notes || null,
+      remind_at: input.remindAt === undefined ? undefined : input.remindAt || null,
+      reminder_sent_at: input.remindAt ? null : undefined,
       updated_at: new Date().toISOString(),
     })
     .eq("id", input.id)

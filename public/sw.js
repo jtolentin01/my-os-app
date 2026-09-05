@@ -1,4 +1,4 @@
-const CACHE_VERSION = "my-os-v2"
+const CACHE_VERSION = "my-os-v3"
 const PRECACHE_URLS = ["/offline.html", "/icons/icon-192.png", "/icons/icon-512.png"]
 
 self.addEventListener("install", (event) => {
@@ -68,4 +68,46 @@ self.addEventListener("fetch", (event) => {
       })
     )
   }
+})
+
+self.addEventListener("push", (event) => {
+  let data = {
+    title: "My OS",
+    body: "You have a reminder",
+    url: "/diet",
+  }
+
+  try {
+    if (event.data) {
+      data = { ...data, ...event.data.json() }
+    }
+  } catch {}
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      data: { url: data.url || "/diet" },
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+    })
+  )
+})
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close()
+  const targetUrl = event.notification.data?.url || "/diet"
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ("focus" in client) {
+          client.navigate(targetUrl)
+          return client.focus()
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl)
+      }
+    })
+  )
 })

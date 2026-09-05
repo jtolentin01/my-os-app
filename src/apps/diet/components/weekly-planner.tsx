@@ -85,7 +85,11 @@ export const WeeklyPlanner = ({ plan }: WeeklyPlannerProps) => {
                     Add breakfast, lunch, or dinner for this day.
                   </p>
                 )}
-                <AddMealDialog mealPlanId={plan.id} dayOfWeek={day.dayOfWeek} />
+                <AddMealDialog
+                  mealPlanId={plan.id}
+                  dayOfWeek={day.dayOfWeek}
+                  weekStart={plan.week_start}
+                />
               </CardContent>
             </Card>
           )
