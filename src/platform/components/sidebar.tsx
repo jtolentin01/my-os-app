@@ -147,11 +147,11 @@ export const Sidebar = ({ userEmail, displayName, avatarUrl }: SidebarProps) => 
         </div>
       </aside>
 
-      <div className="sticky top-0 z-20 flex h-14 w-full shrink-0 items-center justify-between border-b bg-background px-4 md:hidden">
-        <Link href="/dashboard" aria-label="My OS" className="flex items-center">
+      <div className="sticky top-0 z-20 flex min-h-14 w-full shrink-0 items-center justify-between border-b bg-background px-4 pt-[env(safe-area-inset-top,0px)] md:hidden">
+        <Link href="/dashboard" aria-label="My OS" className="flex h-14 items-center">
           <BrandLogo />
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex h-14 items-center gap-2">
           <ThemeToggle />
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger
@@ -160,7 +160,7 @@ export const Sidebar = ({ userEmail, displayName, avatarUrl }: SidebarProps) => 
               <Menu className="size-4" />
             </SheetTrigger>
             <SheetContent side="left" className="flex w-72 flex-col p-0">
-              <SheetHeader className="border-b px-4 py-3">
+              <SheetHeader className="border-b px-4 py-3 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
                 <SheetTitle className="flex items-center">
                   <BrandLogo />
                   <span className="sr-only">My OS</span>
@@ -169,7 +169,7 @@ export const Sidebar = ({ userEmail, displayName, avatarUrl }: SidebarProps) => 
               <div className="flex-1 overflow-y-auto p-3">
                 <NavLinks onNavigate={() => setOpen(false)} />
               </div>
-              <div className="border-t p-4">
+              <div className="border-t p-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
                 <SidebarUser
                   userEmail={userEmail}
                   displayName={displayName}

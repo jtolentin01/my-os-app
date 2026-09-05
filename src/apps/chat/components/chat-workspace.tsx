@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react"
-import { Globe, History, MessageSquarePlus, Trash2 } from "lucide-react"
+import { Brain, Globe, History, ImagePlus, MessageSquarePlus, Trash2, X } from "lucide-react"
 import {
   createChatThreadAction,
   deleteChatThreadAction,
@@ -10,6 +10,12 @@ import {
 } from "@/apps/chat/services/actions"
 import { ChatMarkdown } from "@/apps/chat/components/chat-markdown"
 import type { ChatMessage, ChatThread } from "@/apps/chat/types"
+import {
+  CHAT_IMAGE_MAX_BYTES,
+  IMAGE_ONLY_USER_MESSAGE,
+  isChatImageMimeType,
+  readFileAsDataUrl,
+} from "@/apps/chat/utils/image-attachment"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -34,6 +40,10 @@ import {
 import { useOnlineStatus } from "@/platform/offline/use-online-status"
 import { cn } from "@/lib/utils"
 
+type WorkspaceMessage = ChatMessage & {
+  imagePreviewUrl?: string
+}
+
 type ChatWorkspaceProps = {
   threads: ChatThread[]
   initialThreadId?: string | null
@@ -44,6 +54,7 @@ type ChatWorkspaceProps = {
 
 const MODEL_STORAGE_KEY = "myos.chat.model"
 const WEB_SEARCH_STORAGE_KEY = "myos.chat.webSearch"
+const SAVE_MEMORY_STORAGE_KEY = "myos.chat.saveMemory"
 
 const readStoredModel = (models: AiModelOption[], fallback: string) => {
   try {
@@ -63,6 +74,16 @@ const readStoredWebSearch = () => {
   }
 }
 
+const readStoredSaveMemory = () => {
+  try {
+    const stored = window.localStorage.getItem(SAVE_MEMORY_STORAGE_KEY)
+    if (stored === null) return true
+    return stored === "1"
+  } catch {
+    return true
+  }
+}
+
 const subscribeNoop = () => () => {}
 
 export const ChatWorkspace = ({
@@ -74,14 +95,18 @@ export const ChatWorkspace = ({
 }: ChatWorkspaceProps) => {
   const isOnline = useOnlineStatus()
   const bottomRef = useRef<HTMLDivElement | null>(null)
+  const imageInputRef = useRef<HTMLInputElement | null>(null)
   const requestIdRef = useRef(0)
 
   const [threads, setThreads] = useState(initialThreads)
   const [activeThreadId, setActiveThreadId] = useState<string | null>(
     initialThreadId
   )
-  const [messages, setMessages] = useState(initialMessages)
+  const [messages, setMessages] = useState<WorkspaceMessage[]>(initialMessages)
   const [draft, setDraft] = useState("")
+  const [pendingImageDataUrl, setPendingImageDataUrl] = useState<string | null>(
+    null
+  )
   const [error, setError] = useState("")
   const [isPending, setIsPending] = useState(false)
   const [savedMemories, setSavedMemories] = useState<UserMemory[]>([])
@@ -91,6 +116,20 @@ export const ChatWorkspace = ({
   const [webSearchOverride, setWebSearchOverride] = useState<boolean | null>(
     null
   )
+  const [saveMemoryOverride, setSaveMemoryOverride] = useState<boolean | null>(
+    null
+  )
+
+  const clearImageInput = () => {
+    if (imageInputRef.current) {
+      imageInputRef.current.value = ""
+    }
+  }
+
+  const clearPendingImage = () => {
+    setPendingImageDataUrl(null)
+    clearImageInput()
+  }
 
   const storedModel = useSyncExternalStore(
     subscribeNoop,
@@ -108,6 +147,13 @@ export const ChatWorkspace = ({
     () => false
   )
   const webSearch = webSearchOverride ?? storedWebSearch
+
+  const storedSaveMemory = useSyncExternalStore(
+    subscribeNoop,
+    readStoredSaveMemory,
+    () => true
+  )
+  const saveMemory = saveMemoryOverride ?? storedSaveMemory
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
@@ -139,6 +185,14 @@ export const ChatWorkspace = ({
     } catch {}
   }
 
+  const handleSaveMemoryToggle = () => {
+    const next = !saveMemory
+    setSaveMemoryOverride(next)
+    try {
+      window.localStorage.setItem(SAVE_MEMORY_STORAGE_KEY, next ? "1" : "0")
+    } catch {}
+  }
+
   const upsertThread = (thread: ChatThread) => {
     setThreads((current) => {
       const without = current.filter((item) => item.id !== thread.id)
@@ -153,6 +207,7 @@ export const ChatWorkspace = ({
     setSavedMemories([])
     setUsedWebSearch(false)
     setMessages([])
+    clearPendingImage()
     setHistoryOpen(false)
 
     const result = await listChatMessagesAction(threadId)
@@ -176,6 +231,7 @@ export const ChatWorkspace = ({
     setMessages([])
     setSavedMemories([])
     setUsedWebSearch(false)
+    clearPendingImage()
     setHistoryOpen(false)
   }
 
@@ -196,6 +252,7 @@ export const ChatWorkspace = ({
       setMessages([])
       setSavedMemories([])
       setUsedWebSearch(false)
+      clearPendingImage()
       if (next) {
         const loaded = await listChatMessagesAction(next.id)
         setMessages(loaded.messages)
@@ -203,15 +260,46 @@ export const ChatWorkspace = ({
     }
   }
 
+  const handleImageSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setError("")
+
+    if (!isChatImageMimeType(file.type)) {
+      setError("Use a JPG, PNG, or WebP image.")
+      clearImageInput()
+      return
+    }
+
+    if (file.size > CHAT_IMAGE_MAX_BYTES) {
+      setError("Image must be 2MB or smaller.")
+      clearImageInput()
+      return
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file)
+      setPendingImageDataUrl(dataUrl)
+    } catch {
+      setError("Failed to read image.")
+      clearImageInput()
+    }
+  }
+
   const handleSend = async () => {
     const message = draft.trim()
-    if (!message || isPending) return
+    const imageDataUrl = pendingImageDataUrl
+    if ((!message && !imageDataUrl) || isPending) return
 
     if (!isOnline) {
       setError("Chat is available when you are back online.")
       return
     }
 
+    const displayContent = message || IMAGE_ONLY_USER_MESSAGE
     const requestId = requestIdRef.current + 1
     requestIdRef.current = requestId
     setIsPending(true)
@@ -219,8 +307,9 @@ export const ChatWorkspace = ({
     setSavedMemories([])
     setUsedWebSearch(false)
     setDraft("")
+    clearPendingImage()
 
-    const optimisticId = `local-${Date.now()}`
+    const optimisticId = `local-${requestId}`
     setMessages((current) => [
       ...current,
       {
@@ -228,18 +317,21 @@ export const ChatWorkspace = ({
         thread_id: activeThreadId ?? "pending",
         user_id: "local",
         role: "user",
-        content: message,
+        content: displayContent,
         tool_name: null,
         tool_call_id: null,
         created_at: new Date().toISOString(),
+        imagePreviewUrl: imageDataUrl ?? undefined,
       },
     ])
 
     const result = await sendChatMessageAction({
       threadId: activeThreadId ?? undefined,
       message,
+      imageDataUrl: imageDataUrl ?? undefined,
       model,
       webSearch,
+      saveMemory,
     })
 
     if (requestId !== requestIdRef.current) return
@@ -253,6 +345,9 @@ export const ChatWorkspace = ({
 
     if (result.error) {
       setDraft(message)
+      if (imageDataUrl) {
+        setPendingImageDataUrl(imageDataUrl)
+      }
       setError(result.error)
       setSavedMemories(result.savedMemories ?? [])
       setMessages((current) => {
@@ -261,9 +356,14 @@ export const ChatWorkspace = ({
           const exists = withoutOptimistic.some(
             (item) => item.id === result.userMessage!.id
           )
-          return exists
-            ? withoutOptimistic
-            : [...withoutOptimistic, result.userMessage]
+          if (exists) return withoutOptimistic
+          return [
+            ...withoutOptimistic,
+            {
+              ...result.userMessage,
+              imagePreviewUrl: imageDataUrl ?? undefined,
+            },
+          ]
         }
         return withoutOptimistic
       })
@@ -272,6 +372,9 @@ export const ChatWorkspace = ({
 
     if (!result.userMessage || !result.assistantMessage) {
       setDraft(message)
+      if (imageDataUrl) {
+        setPendingImageDataUrl(imageDataUrl)
+      }
       setError("Failed to send message.")
       setMessages((current) => current.filter((item) => item.id !== optimisticId))
       return
@@ -288,7 +391,10 @@ export const ChatWorkspace = ({
       const existingIds = new Set(withoutOptimistic.map((item) => item.id))
       const next = [...withoutOptimistic]
       if (!existingIds.has(result.userMessage!.id)) {
-        next.push(result.userMessage!)
+        next.push({
+          ...result.userMessage!,
+          imagePreviewUrl: imageDataUrl ?? undefined,
+        })
       }
       if (!existingIds.has(result.assistantMessage!.id)) {
         next.push(result.assistantMessage!)
@@ -354,7 +460,7 @@ export const ChatWorkspace = ({
   )
 
   return (
-    <div className="flex h-[calc(100dvh-3.5rem)] min-h-0 w-full min-w-0 md:h-full">
+    <div className="flex h-[calc(100dvh-3.5rem-env(safe-area-inset-top,0px))] min-h-0 w-full min-w-0 md:h-full">
       <section className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-background">
         <header className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
           <div className="min-w-0">
@@ -392,7 +498,7 @@ export const ChatWorkspace = ({
               <div className="flex flex-1 flex-col items-center justify-center gap-2 py-16 text-center">
                 <p className="text-sm font-medium">Talk to My OS</p>
                 <p className="max-w-sm text-sm text-muted-foreground">
-                  Ask anything, save personal facts, or create notes from this conversation.
+                  Ask anything, attach an image to analyze, save personal facts, or create notes from this conversation.
                 </p>
               </div>
             ) : (
@@ -402,14 +508,23 @@ export const ChatWorkspace = ({
                   className={cn(
                     "max-w-[92%] rounded-2xl px-3.5 py-2.5 text-sm break-words sm:max-w-[80%]",
                     message.role === "user"
-                      ? "ml-auto bg-primary text-primary-foreground whitespace-pre-wrap"
+                      ? "ml-auto bg-primary text-primary-foreground"
                       : "mr-auto bg-muted text-foreground"
                   )}
                 >
+                  {message.role === "user" && message.imagePreviewUrl ? (
+                    <div className="mb-2 overflow-hidden rounded-xl">
+                      <img
+                        src={message.imagePreviewUrl}
+                        alt="Attached"
+                        className="max-h-64 w-full object-contain"
+                      />
+                    </div>
+                  ) : null}
                   {message.role === "assistant" ? (
                     <ChatMarkdown content={message.content} />
                   ) : (
-                    message.content
+                    <p className="whitespace-pre-wrap">{message.content}</p>
                   )}
                 </div>
               ))
@@ -435,12 +550,55 @@ export const ChatWorkspace = ({
           </div>
         </div>
 
-        <div className="shrink-0 border-t bg-background/95 px-3 py-3 backdrop-blur-sm supports-backdrop-filter:bg-background/80">
+        <div className="shrink-0 border-t bg-background/95 px-3 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] backdrop-blur-sm supports-backdrop-filter:bg-background/80">
           <div className="mx-auto w-full max-w-3xl">
             {error ? (
               <p className="mb-2 text-sm text-destructive">{error}</p>
             ) : null}
+            {pendingImageDataUrl ? (
+              <div className="mb-2 flex items-start gap-2">
+                <div className="relative overflow-hidden rounded-xl border bg-muted/40">
+                  <img
+                    src={pendingImageDataUrl}
+                    alt="Selected attachment"
+                    className="h-20 w-20 object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon-xs"
+                    className="absolute top-1 right-1"
+                    aria-label="Remove image"
+                    disabled={isPending}
+                    onClick={clearPendingImage}
+                  >
+                    <X className="size-3" />
+                  </Button>
+                </div>
+                <p className="pt-1 text-xs text-muted-foreground">
+                  Image is analyzed for this message only and is not saved.
+                </p>
+              </div>
+            ) : null}
             <div className="flex items-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+                aria-label="Attach image"
+                disabled={isPending}
+                onClick={() => imageInputRef.current?.click()}
+              >
+                <ImagePlus className="size-4" />
+              </Button>
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(event) => void handleImageSelect(event)}
+              />
               <Textarea
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
@@ -456,7 +614,7 @@ export const ChatWorkspace = ({
               />
               <Button
                 type="button"
-                disabled={isPending || !draft.trim()}
+                disabled={isPending || (!draft.trim() && !pendingImageDataUrl)}
                 onClick={() => void handleSend()}
                 className="shrink-0"
               >
@@ -516,6 +674,23 @@ export const ChatWorkspace = ({
                 <Globe className="size-3.5" />
                 Web search {webSearch ? "on" : "off"}
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                aria-pressed={saveMemory}
+                aria-label="Toggle remember"
+                disabled={isPending}
+                onClick={handleSaveMemoryToggle}
+                className={cn(
+                  "h-7 gap-1.5 px-2.5 text-xs",
+                  saveMemory &&
+                    "border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+                )}
+              >
+                <Brain className="size-3.5" />
+                Remember {saveMemory ? "on" : "off"}
+              </Button>
             </div>
             {!isOnline ? (
               <p className="mt-2 text-xs text-muted-foreground">
@@ -533,7 +708,7 @@ export const ChatWorkspace = ({
       <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
         <SheetContent
           side="right"
-          className="flex w-full flex-col gap-0 p-0 pt-12 sm:max-w-xs"
+          className="flex w-full flex-col gap-0 p-0 pt-[calc(3rem+env(safe-area-inset-top,0px))] sm:max-w-xs"
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Chat history</SheetTitle>

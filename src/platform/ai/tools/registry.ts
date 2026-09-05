@@ -8,13 +8,25 @@ const toolsByName = new Map<string, AiToolDefinition>(
 
 export const getRegisteredTools = () => Array.from(toolsByName.values())
 
-export const getToolDefinitions = () =>
-  getRegisteredTools().map((entry) => entry.tool)
+export const getToolDefinitions = (options?: { allowSaveMemory?: boolean }) => {
+  const allowSaveMemory = options?.allowSaveMemory !== false
+  return getRegisteredTools()
+    .filter((entry) => allowSaveMemory || entry.name !== "save_memory")
+    .map((entry) => entry.tool)
+}
 
 export const executeTool = async (
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  options?: { allowSaveMemory?: boolean }
 ) => {
+  if (options?.allowSaveMemory === false && name === "save_memory") {
+    return {
+      ok: false,
+      summary: "Saving memory is turned off for this turn.",
+    }
+  }
+
   const tool = toolsByName.get(name)
   if (!tool) {
     return {

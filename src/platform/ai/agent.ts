@@ -2,6 +2,7 @@ import type {
   ResponseFunctionToolCall,
   ResponseFunctionWebSearch,
   ResponseInputItem,
+  ResponseInputMessageContentList,
   Tool,
 } from "openai/resources/responses/responses"
 import { getOpenAIClient } from "@/platform/ai/client"
@@ -29,15 +30,18 @@ export type AgentTurnResult = {
 
 const MAX_TOOL_ROUNDS = 6
 
-const buildInstructions = (memoryBlock: string, webSearch: boolean) => {
+const buildInstructions = (input: {
+  memoryBlock: string
+  webSearch: boolean
+  saveMemory: boolean
+  hasImage: boolean
+}) => {
   const lines = [
     "You are My OS, the user's personal operating system assistant.",
     "Chat is the central place to help across their life apps.",
     "Be concise, practical, warm, and personal.",
     "Format replies with Markdown when helpful: **bold**, lists, block quotes (>), and GitHub-style tables.",
     "Use tools when they help complete a request.",
-    "Personal facts are saved automatically from chat. Use save_memory only if the user explicitly asks to remember or update something.",
-    "Use delete_memory when the user asks to forget something.",
     "When asked to create or save a note, use create_note.",
     "When asked about existing notes, use search_notes or get_note.",
     "After tools run, reply to the user in plain language about what you did.",
@@ -46,7 +50,24 @@ const buildInstructions = (memoryBlock: string, webSearch: boolean) => {
     "Privacy: you only know this signed-in user. Use only the known personal facts and tools for this user. Never claim access to another user's data, never invent other people's private information, and if asked about someone else's My OS account say you can only help with the current user's information.",
   ]
 
-  if (webSearch) {
+  if (input.saveMemory) {
+    lines.push(
+      "Personal facts are saved automatically from chat. Use save_memory only if the user explicitly asks to remember or update something.",
+      "Use delete_memory when the user asks to forget something."
+    )
+  } else {
+    lines.push(
+      "Saving memory is disabled for this turn. Do not save or update personal facts. Do not claim you remembered something new. You may still use known personal facts already listed below, list_memories, and delete_memory if the user asks to forget something."
+    )
+  }
+
+  if (input.hasImage) {
+    lines.push(
+      "The user attached an image with this message. Analyze the image carefully and answer their question about it. Images are not kept in chat history, so rely only on the image provided in this turn."
+    )
+  }
+
+  if (input.webSearch) {
     lines.push(
       "Web search is enabled for this turn. Use it for current events, live prices, recent documentation, or when your knowledge may be outdated. Do not search for personal user facts already in memory, or for simple reasoning that does not need the web. When you use web results, cite sources with Markdown links when helpful."
     )
@@ -56,8 +77,24 @@ const buildInstructions = (memoryBlock: string, webSearch: boolean) => {
     )
   }
 
-  lines.push("Known personal facts for this user only:", memoryBlock)
+  lines.push("Known personal facts for this user only:", input.memoryBlock)
   return lines.join("\n")
+}
+
+const buildUserContent = (
+  text: string,
+  imageDataUrl?: string | null
+): string | ResponseInputMessageContentList => {
+  if (!imageDataUrl) return text
+
+  return [
+    { type: "input_text", text },
+    {
+      type: "input_image",
+      image_url: imageDataUrl,
+      detail: "auto",
+    },
+  ]
 }
 
 const parseToolArgs = (raw: string): Record<string, unknown> => {
@@ -95,15 +132,19 @@ const collectWebSearchEvents = (
 export const runAgentTurn = async (input: {
   history: AgentMessage[]
   userMessage: string
+  imageDataUrl?: string | null
   memoryBlock: string
   model?: string | null
   webSearch?: boolean
+  saveMemory?: boolean
 }): Promise<AgentTurnResult> => {
   const client = getOpenAIClient()
   const model = resolveAiModel(input.model)
   const webSearch = Boolean(input.webSearch)
+  const saveMemory = input.saveMemory !== false
+  const imageDataUrl = input.imageDataUrl?.trim() || null
   const tools: Tool[] = [
-    ...getToolDefinitions(),
+    ...getToolDefinitions({ allowSaveMemory: saveMemory }),
     ...(webSearch ? [{ type: "web_search" as const }] : []),
   ]
   const toolEvents: AgentToolEvent[] = []
@@ -115,13 +156,18 @@ export const runAgentTurn = async (input: {
     })),
     {
       role: "user" as const,
-      content: input.userMessage,
+      content: buildUserContent(input.userMessage, imageDataUrl),
     },
   ]
 
   let response = await client.responses.create({
     model,
-    instructions: buildInstructions(input.memoryBlock, webSearch),
+    instructions: buildInstructions({
+      memoryBlock: input.memoryBlock,
+      webSearch,
+      saveMemory,
+      hasImage: Boolean(imageDataUrl),
+    }),
     input: conversation,
     tools,
   })
@@ -141,7 +187,9 @@ export const runAgentTurn = async (input: {
 
     for (const call of functionCalls) {
       const args = parseToolArgs(call.arguments)
-      const result = await executeTool(call.name, args)
+      const result = await executeTool(call.name, args, {
+        allowSaveMemory: saveMemory,
+      })
       toolEvents.push({
         name: call.name,
         ok: result.ok,

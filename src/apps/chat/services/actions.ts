@@ -39,6 +39,9 @@ const mapAiError = (message: string) => {
   if (/web[_ ]?search/i.test(message)) {
     return "Web search is not available for this model or API key."
   }
+  if (/invalid_image|unsupported.?image|image.?too.?large|vision/i.test(message)) {
+    return "That image could not be analyzed. Try a smaller JPG, PNG, or WebP."
+  }
   if (/rate limit|429/i.test(message)) {
     return "The assistant is busy. Try again in a moment."
   }
@@ -48,8 +51,10 @@ const mapAiError = (message: string) => {
 export const sendChatMessageAction = async (input: {
   threadId?: string
   message: string
+  imageDataUrl?: string
   model?: string
   webSearch?: boolean
+  saveMemory?: boolean
 }): Promise<SendResult> => {
   const parsed = sendChatMessageSchema.safeParse(input)
 

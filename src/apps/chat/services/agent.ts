@@ -1,3 +1,4 @@
+import { IMAGE_ONLY_USER_MESSAGE } from "@/apps/chat/utils/image-attachment"
 import {
   addMessage,
   createThread,
@@ -24,6 +25,13 @@ const titleFromMessage = (message: string) => {
   return `${cleaned.slice(0, 57).trimEnd()}...`
 }
 
+const resolveUserContent = (message: string, hasImage: boolean) => {
+  const trimmed = message.trim()
+  if (trimmed) return trimmed
+  if (hasImage) return IMAGE_ONLY_USER_MESSAGE
+  return ""
+}
+
 export type SendChatMessageResult =
   | {
       ok: true
@@ -44,27 +52,34 @@ export type SendChatMessageResult =
 export const sendChatMessage = async (input: {
   threadId?: string
   message: string
+  imageDataUrl?: string
   model?: string
   webSearch?: boolean
+  saveMemory?: boolean
 }): Promise<SendChatMessageResult> => {
+  const imageDataUrl = input.imageDataUrl?.trim() || undefined
+  const saveMemory = input.saveMemory !== false
+  const content = resolveUserContent(input.message, Boolean(imageDataUrl))
   const existing = input.threadId ? await getThread(input.threadId) : null
-  const thread = existing ?? (await createThread(titleFromMessage(input.message)))
+  const thread = existing ?? (await createThread(titleFromMessage(content)))
 
   const userMessage = await addMessage({
     threadId: thread.id,
     role: "user",
-    content: input.message,
+    content,
   })
 
   if (!existing || existing.title === "New chat") {
-    await updateThreadTitle(thread.id, titleFromMessage(input.message))
+    await updateThreadTitle(thread.id, titleFromMessage(content))
   }
 
   const memories = await listMemories(80)
-  const memoryExtraction = extractAndSaveMemoriesSafe({
-    userMessage: input.message,
-    existingMemories: memories,
-  })
+  const memoryExtraction = saveMemory
+    ? extractAndSaveMemoriesSafe({
+        userMessage: content,
+        existingMemories: memories,
+      })
+    : Promise.resolve([] as UserMemory[])
 
   try {
     const [{ modelId }, history] = await Promise.all([
@@ -84,10 +99,12 @@ export const sendChatMessage = async (input: {
     const [result, savedMemories] = await Promise.all([
       runAgentTurn({
         history: agentHistory,
-        userMessage: input.message,
+        userMessage: content,
+        imageDataUrl,
         memoryBlock: formatMemoriesForPrompt(memories),
         model: modelId,
         webSearch: Boolean(input.webSearch),
+        saveMemory,
       }),
       memoryExtraction,
     ])

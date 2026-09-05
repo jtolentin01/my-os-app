@@ -44,7 +44,7 @@ export const AppShell = ({
             "min-w-0 flex-1",
             isChat
               ? "flex flex-col overflow-hidden p-0"
-              : "px-4 py-6 md:px-8 md:py-8"
+              : "px-4 pt-6 pb-[max(1.5rem,env(safe-area-inset-bottom,0px))] md:px-8 md:pt-8 md:pb-[max(2rem,env(safe-area-inset-bottom,0px))]"
           )}
         >
           {showOfflineMessage ? <OfflineMessage /> : children}
