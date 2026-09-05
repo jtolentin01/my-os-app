@@ -1,4 +1,5 @@
 import OpenAI from "openai"
+import { resolveAiModel } from "@/platform/ai/models"
 
 export const getOpenAIClient = () => {
   const apiKey = process.env.OPENAI_API_KEY?.trim()
@@ -10,5 +11,5 @@ export const getOpenAIClient = () => {
   return new OpenAI({ apiKey })
 }
 
-export const getOpenAIModel = () =>
-  process.env.OPENAI_MODEL?.trim() || "gpt-4o-mini"
+export const getOpenAIModel = (preferred?: string | null) =>
+  resolveAiModel(preferred)

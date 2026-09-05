@@ -75,8 +75,8 @@ const DashboardPage = async () => {
               {greeting}, {displayName}
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              This is your personal operating system. Diet and Notes are available now. More life
-              apps will plug into this same space.
+              This is your personal operating system. Chat is the central AI entrance. Diet and
+              Notes are available now too.
             </p>
           </div>
         </div>

@@ -1,5 +1,11 @@
 import type { LucideIcon } from "lucide-react"
-import { LayoutDashboard, NotebookPen, Salad, Settings } from "lucide-react"
+import {
+  LayoutDashboard,
+  MessageSquare,
+  NotebookPen,
+  Salad,
+  Settings,
+} from "lucide-react"
 
 export type AppDefinition = {
   id: string
@@ -28,13 +34,22 @@ export const platformNav = [
 
 export const appsRegistry: AppDefinition[] = [
   {
+    id: "chat",
+    name: "Chat",
+    description: "Central AI for your personal OS",
+    href: "/chat",
+    icon: MessageSquare,
+    enabled: true,
+    navOrder: 1,
+  },
+  {
     id: "diet",
     name: "Diet",
     description: "Weekly dish planner and meal guide",
     href: "/diet",
     icon: Salad,
     enabled: true,
-    navOrder: 1,
+    navOrder: 2,
   },
   {
     id: "notes",
@@ -43,7 +58,7 @@ export const appsRegistry: AppDefinition[] = [
     href: "/notes",
     icon: NotebookPen,
     enabled: true,
-    navOrder: 2,
+    navOrder: 3,
   },
 ]
 

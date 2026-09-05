@@ -49,15 +49,23 @@ npm run dev
 
 ## Structure
 
-- `src/platform` - shell, auth, app registry, AI client
+- `src/platform` - shell, auth, app registry, AI runtime, user memory
+- `src/apps/chat` - central AI chat (tools + memory)
 - `src/apps/diet` - diet module
-- `src/apps/notes` - notes module (+ AI assistant)
+- `src/apps/notes` - notes module (+ editor AI assistant)
 - `src/app` - routes only
 - `src/components/ui` - design system
 - `src/lib/supabase` - Supabase clients
 
-## Notes AI
+## AI
 
 Set `OPENAI_API_KEY` in `.env.local` (optional `OPENAI_MODEL`, defaults to `gpt-4o-mini`).
-The Notes editor includes a side assistant for summarize / rewrite / title / extract.
-Suggestions apply to the editor only; saving still goes through normal note actions.
+
+Run `supabase/migrations/202609060001_chat_and_memories.sql` for Chat threads and user memory.
+
+- **Chat** (`/chat`) is the central AI entrance. It can save personal facts and create/search notes via tools.
+- Chat includes a model picker loaded from OpenAI (`/v1/models`), with relative cost labels and env default.
+- Chat automatically extracts personal facts after each user message (likes, people, places, work, and similar).
+- Chat replies as My OS only and does not reveal underlying model vendors.
+- **Notes editor assistant** remains for in-note summarize / rewrite / title / extract (pending Accept/Discard).
+- Saved memories are editable under Settings → About you.

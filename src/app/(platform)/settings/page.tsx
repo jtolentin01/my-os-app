@@ -3,6 +3,9 @@ import { ThemeSelector } from "@/platform/theme/theme-selector"
 import { AccentSelector } from "@/platform/theme/accent-selector"
 import { InstallAppCard } from "@/platform/pwa/install-app-card"
 import { AvatarUploader } from "@/platform/profile/avatar-uploader"
+import { MemorySettings } from "@/platform/memory/memory-settings"
+import { listMemories } from "@/platform/memory/services"
+import type { UserMemory } from "@/platform/memory/types"
 import {
   Card,
   CardContent,
@@ -28,6 +31,13 @@ const SettingsPage = async () => {
     user?.user_metadata?.display_name ||
     user?.email?.split("@")[0] ||
     "User"
+
+  let memories: UserMemory[] = []
+  try {
+    memories = await listMemories()
+  } catch {
+    memories = []
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
@@ -65,6 +75,18 @@ const SettingsPage = async () => {
                 : "N/A"}
             </span>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>About you</CardTitle>
+          <CardDescription>
+            Facts Chat remembers so My OS can personalize help across apps.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <MemorySettings memories={memories} />
         </CardContent>
       </Card>
 
