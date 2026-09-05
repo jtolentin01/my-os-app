@@ -10,6 +10,15 @@ export const getWeekStart = (date: Date = new Date()) =>
 
 export const formatWeekStart = (date: Date) => format(date, "yyyy-MM-dd")
 
+export const formatCalendarDay = (date: Date = new Date()) =>
+  format(date, "yyyy-MM-dd")
+
+export const getDayIsoDate = (weekStart: string, dayOfWeek: number) =>
+  format(addDays(parseISO(weekStart), dayOfWeek), "yyyy-MM-dd")
+
+export const isPastCalendarDay = (isoDate: string, now: Date = new Date()) =>
+  isoDate < formatCalendarDay(now)
+
 export const getWeekDates = (weekStart: string) => {
   const start = parseISO(weekStart)
 

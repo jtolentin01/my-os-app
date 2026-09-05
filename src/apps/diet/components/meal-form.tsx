@@ -42,10 +42,13 @@ type MealCardProps = {
 
 export const MealCard = ({ meal }: MealCardProps) => {
   return (
-    <div className="group flex items-start justify-between gap-3 rounded-lg border bg-card px-3 py-2.5">
+    <div className="group flex items-start justify-between gap-3 rounded-lg border border-border/70 bg-muted/70 px-3 py-2.5">
       <div className="min-w-0">
         <div className="mb-1 flex flex-wrap items-center gap-2">
-          <Badge variant="secondary" className="capitalize">
+          <Badge
+            variant="secondary"
+            className="capitalize bg-primary/10 text-primary"
+          >
             {meal.meal_type}
           </Badge>
           {meal.remind_at ? (
@@ -168,7 +171,11 @@ export const AddMealDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button variant="outline" size="sm" className="w-full" />}>
+      <DialogTrigger
+        render={
+          <Button variant="outline" size="sm" className="w-full border-primary/30 text-primary hover:bg-primary/10" />
+        }
+      >
         <Plus className="size-3.5" />
         Add meal
       </DialogTrigger>
@@ -217,7 +224,7 @@ export const AddMealDialog = ({
               rows={3}
             />
           </div>
-          <div className="flex flex-col gap-3 rounded-lg border px-3 py-3">
+          <div className="flex flex-col gap-3 rounded-lg border border-border/70 bg-muted/50 px-3 py-3">
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"

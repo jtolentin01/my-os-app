@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { ThemeSelector } from "@/platform/theme/theme-selector"
+import { AccentSelector } from "@/platform/theme/accent-selector"
 import { InstallAppCard } from "@/platform/pwa/install-app-card"
 import {
   Card,
@@ -66,8 +67,15 @@ const SettingsPage = async () => {
             Choose how My OS looks on this device. Your choice is saved locally.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <ThemeSelector />
+        <CardContent className="flex flex-col gap-6">
+          <div className="flex flex-col gap-3">
+            <p className="text-sm font-medium">Theme</p>
+            <ThemeSelector />
+          </div>
+          <div className="flex flex-col gap-3">
+            <p className="text-sm font-medium">Accent color</p>
+            <AccentSelector />
+          </div>
         </CardContent>
       </Card>
 

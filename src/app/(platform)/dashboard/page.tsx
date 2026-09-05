@@ -3,9 +3,11 @@ import { format } from "date-fns"
 import { createClient } from "@/lib/supabase/server"
 import { getEnabledApps } from "@/platform/config/apps.registry"
 import { getOrCreateMealPlan } from "@/apps/diet/services/meals"
+import { getUpcomingMeals } from "@/apps/diet/utils/upcoming"
 import { formatWeekRange } from "@/apps/diet/utils/week"
 import { getRecentNotes } from "@/apps/notes/services/notes"
 import { toPlainNoteText } from "@/apps/notes/utils/content"
+import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
@@ -34,16 +36,16 @@ const DashboardPage = async () => {
     user?.email?.split("@")[0] ||
     "there"
 
-  let mealCount = 0
+  let upcomingMeals: ReturnType<typeof getUpcomingMeals> = []
   let weekLabel = ""
   let recentNotes: Awaited<ReturnType<typeof getRecentNotes>> = []
 
   try {
     const plan = await getOrCreateMealPlan()
-    mealCount = plan.meals.length
+    upcomingMeals = getUpcomingMeals(plan, 4)
     weekLabel = formatWeekRange(plan.week_start)
   } catch {
-    mealCount = 0
+    upcomingMeals = []
   }
 
   try {
@@ -73,16 +75,42 @@ const DashboardPage = async () => {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>This week&apos;s meals</CardTitle>
+            <CardTitle>Upcoming meals</CardTitle>
             <CardDescription>{weekLabel || "Current week"}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <p className="text-3xl font-semibold tracking-tight">{mealCount}</p>
-            <p className="text-sm text-muted-foreground">
-              {mealCount === 0
-                ? "No dishes planned yet. Start your weekly meal plan."
-                : "Dishes planned across your week."}
-            </p>
+            {upcomingMeals.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No upcoming meals. Plan something for today or later.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {upcomingMeals.map(({ meal, dayLabel }) => (
+                  <div
+                    key={meal.id}
+                    className="rounded-lg border border-border/70 bg-muted/70 px-3 py-2"
+                  >
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        {dayLabel}
+                      </span>
+                      <Badge
+                        variant="secondary"
+                        className="capitalize bg-primary/10 text-primary"
+                      >
+                        {meal.meal_type}
+                      </Badge>
+                    </div>
+                    <p className="truncate text-sm font-medium">{meal.title}</p>
+                    {meal.notes ? (
+                      <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+                        {meal.notes}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
             <Link href="/diet" className={cn(buttonVariants(), "w-fit")}>
               Open Diet
             </Link>
@@ -104,14 +132,17 @@ const DashboardPage = async () => {
                 {recentNotes.map((note) => {
                   const preview = toPlainNoteText(note.content)
                   return (
-                  <div key={note.id} className="rounded-lg border px-3 py-2">
-                    <p className="truncate text-sm font-medium">{note.title}</p>
-                    {preview ? (
-                      <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-                        {preview}
-                      </p>
-                    ) : null}
-                  </div>
+                    <div
+                      key={note.id}
+                      className="rounded-lg border border-border/70 bg-muted/70 px-3 py-2"
+                    >
+                      <p className="truncate text-sm font-medium">{note.title}</p>
+                      {preview ? (
+                        <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
+                          {preview}
+                        </p>
+                      ) : null}
+                    </div>
                   )
                 })}
               </div>
@@ -134,7 +165,7 @@ const DashboardPage = async () => {
                 <Link
                   key={app.id}
                   href={app.href}
-                  className="flex items-center gap-3 rounded-lg border px-3 py-3 transition-colors hover:bg-muted/50"
+                  className="flex items-center gap-3 rounded-lg border border-border/70 bg-muted/50 px-3 py-3 transition-colors hover:bg-muted"
                 >
                   <div className="flex size-9 items-center justify-center rounded-md bg-muted">
                     <Icon className="size-4" />

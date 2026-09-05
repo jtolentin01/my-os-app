@@ -18,7 +18,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 
-import { useOnlineStatus } from "@/platform/offline/use-online-status"
+import { useOnlineStatus, useHasMounted } from "@/platform/offline/use-online-status"
 
 type SidebarProps = {
   userEmail?: string | null
@@ -28,22 +28,24 @@ type SidebarProps = {
 const NavLinks = ({ onNavigate }: { onNavigate?: () => void }) => {
   const pathname = usePathname()
   const isOnline = useOnlineStatus()
+  const hasMounted = useHasMounted()
   const apps = getEnabledApps()
   const primary = platformNav.filter((item) => item.id === "dashboard")
   const secondary = platformNav.filter((item) => item.id === "settings")
+  const useOfflineAnchors = hasMounted && !isOnline
 
   const linkClass = (href: string) => {
     const isActive = pathname === href || pathname.startsWith(`${href}/`)
     return cn(
       "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
       isActive
-        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+        ? "bg-primary/10 text-primary"
         : "text-sidebar-foreground/70 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground"
     )
   }
 
   const renderLink = (href: string, label: string, icon: React.ReactNode) => {
-    if (!isOnline) {
+    if (useOfflineAnchors) {
       return (
         <a key={href} href={href} onClick={onNavigate} className={linkClass(href)}>
           {icon}

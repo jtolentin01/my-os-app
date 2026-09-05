@@ -1,4 +1,4 @@
-const CACHE_VERSION = "my-os-v3"
+const CACHE_VERSION = "my-os-v4"
 const PRECACHE_URLS = ["/offline.html", "/icons/icon-192.png", "/icons/icon-512.png"]
 
 self.addEventListener("install", (event) => {
@@ -54,18 +54,15 @@ self.addEventListener("fetch", (event) => {
 
   if (isStaticAsset(url)) {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) {
-          return cached
-        }
-        return fetch(request).then((response) => {
+      fetch(request)
+        .then((response) => {
           if (response.ok) {
             const copy = response.clone()
             caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy))
           }
           return response
         })
-      })
+        .catch(() => caches.match(request).then((cached) => cached || Response.error()))
     )
   }
 })

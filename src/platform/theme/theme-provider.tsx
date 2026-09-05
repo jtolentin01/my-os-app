@@ -6,6 +6,7 @@ import {
   THEME_STORAGE_KEY,
   getEnabledThemes,
 } from "@/platform/theme/themes"
+import { AccentProvider } from "@/platform/theme/accent-provider"
 
 type ThemeProviderProps = {
   children: React.ReactNode
@@ -23,7 +24,7 @@ export const ThemeProvider = ({ children }: ThemeProviderProps) => {
       themes={themes}
       disableTransitionOnChange
     >
-      {children}
+      <AccentProvider>{children}</AccentProvider>
     </NextThemesProvider>
   )
 }

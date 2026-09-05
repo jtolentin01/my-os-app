@@ -19,6 +19,7 @@ import {
 } from "@/apps/notes/services/actions"
 import type { Note } from "@/apps/notes/types"
 import { isEmptyNoteHtml } from "@/apps/notes/utils/content"
+import { isCreatedOnPastDay } from "@/apps/notes/utils/dates"
 import { sanitizeNoteHtml } from "@/apps/notes/utils/sanitize"
 import {
   getCachedNotes,
@@ -236,6 +237,11 @@ export const NotesOfflineProvider = ({
 
   const deleteNote = useCallback(
     async (id: string) => {
+      const existing = notes.find((note) => note.id === id)
+      if (existing && isCreatedOnPastDay(existing.created_at)) {
+        return { error: "You can't delete notes from previous days." }
+      }
+
       if (!navigator.onLine) {
         await queueNoteDelete(id)
         setNotes((current) => current.filter((item) => item.id !== id))
@@ -254,7 +260,7 @@ export const NotesOfflineProvider = ({
       startTransition(() => router.refresh())
       return {}
     },
-    [refreshPendingCount, router]
+    [notes, refreshPendingCount, router]
   )
 
   const togglePin = useCallback(

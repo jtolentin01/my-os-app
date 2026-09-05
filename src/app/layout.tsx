@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { ThemeProvider } from "@/platform/theme/theme-provider"
+import { ACCENT_STORAGE_KEY, DEFAULT_ACCENT } from "@/platform/theme/accents"
 import { RegisterServiceWorker } from "@/platform/pwa/register-service-worker"
 import "./globals.css"
 
@@ -48,8 +49,16 @@ const RootLayout = ({ children }: Readonly<{ children: React.ReactNode }>) => {
     <html
       lang="en"
       suppressHydrationWarning
+      data-accent="teal"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var k=${JSON.stringify(ACCENT_STORAGE_KEY)};var d=${JSON.stringify(DEFAULT_ACCENT)};var allowed=["neutral","teal","blue","amber","rose"];var a=localStorage.getItem(k);document.documentElement.dataset.accent=(a&&allowed.indexOf(a)>=0)?a:d;}catch(e){document.documentElement.dataset.accent=${JSON.stringify(DEFAULT_ACCENT)};}})();`,
+          }}
+        />
+      </head>
       <body className="flex min-h-full flex-col font-sans">
         <ThemeProvider>
           <RegisterServiceWorker />

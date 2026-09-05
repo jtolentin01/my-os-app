@@ -1,6 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
 import type { Meal, MealPlan, MealPlanWithMeals } from "@/apps/diet/types"
-import { formatWeekStart, getWeekStart } from "@/apps/diet/utils/week"
+import {
+  formatWeekStart,
+  getDayIsoDate,
+  getWeekStart,
+  isPastCalendarDay,
+} from "@/apps/diet/utils/week"
 import { parseISO } from "date-fns"
 
 export const getCurrentUserId = async () => {
@@ -99,6 +104,26 @@ export const createMeal = async (input: {
 }) => {
   const supabase = await createClient()
   const userId = await getCurrentUserId()
+
+  const { data: plan, error: planError } = await supabase
+    .from("meal_plans")
+    .select("week_start")
+    .eq("id", input.mealPlanId)
+    .eq("user_id", userId)
+    .maybeSingle()
+
+  if (planError) {
+    throw new Error(planError.message)
+  }
+
+  if (!plan) {
+    throw new Error("Meal plan not found.")
+  }
+
+  const dayIsoDate = getDayIsoDate(plan.week_start, input.dayOfWeek)
+  if (isPastCalendarDay(dayIsoDate)) {
+    throw new Error("You can't add meals to a past day.")
+  }
 
   const { data, error } = await supabase
     .from("meals")

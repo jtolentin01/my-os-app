@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import type { Note } from "@/apps/notes/types"
 import type { CreateNoteInput, UpdateNoteInput } from "@/apps/notes/schemas/note"
+import { isCreatedOnPastDay } from "@/apps/notes/utils/dates"
 import { sanitizeNoteHtml } from "@/apps/notes/utils/sanitize"
 
 export const getCurrentUserId = async () => {
@@ -136,6 +137,25 @@ export const toggleNotePin = async (id: string, isPinned: boolean) => {
 export const deleteNote = async (id: string) => {
   const supabase = await createClient()
   const userId = await getCurrentUserId()
+
+  const { data: existing, error: existingError } = await supabase
+    .from("notes")
+    .select("created_at")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle()
+
+  if (existingError) {
+    throw new Error(existingError.message)
+  }
+
+  if (!existing) {
+    throw new Error("Note not found.")
+  }
+
+  if (isCreatedOnPastDay(existing.created_at)) {
+    throw new Error("You can't delete notes from previous days.")
+  }
 
   const { error } = await supabase
     .from("notes")

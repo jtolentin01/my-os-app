@@ -8,6 +8,7 @@ import { NoteRichEditor } from "@/apps/notes/components/note-rich-editor"
 import { NoteContent } from "@/apps/notes/components/note-content"
 import { useNotesOffline } from "@/apps/notes/offline/notes-offline-provider"
 import { isEmptyNoteHtml } from "@/apps/notes/utils/content"
+import { isCreatedOnPastDay } from "@/apps/notes/utils/dates"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -199,10 +200,11 @@ export const NoteCard = ({ note }: NoteCardProps) => {
   const { deleteNote, togglePin } = useNotesOffline()
   const [viewOpen, setViewOpen] = useState(false)
   const [isPending, setIsPending] = useState(false)
+  const canDelete = !isCreatedOnPastDay(note.created_at)
 
   return (
     <>
-      <div className="group relative flex flex-col gap-3 rounded-xl border bg-card p-4">
+      <div className="group relative flex flex-col gap-3 rounded-xl border border-border/70 bg-card p-4">
         <button
           type="button"
           onClick={() => setViewOpen(true)}
@@ -236,20 +238,22 @@ export const NoteCard = ({ note }: NoteCardProps) => {
               <Pin className={`size-3.5 ${note.is_pinned ? "fill-current" : ""}`} />
             </Button>
             <NoteEditorDialog note={note} variant="edit" />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              disabled={isPending}
-              aria-label="Delete note"
-              onClick={async () => {
-                setIsPending(true)
-                await deleteNote(note.id)
-                setIsPending(false)
-              }}
-            >
-              <Trash2 className="size-3.5" />
-            </Button>
+            {canDelete ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                disabled={isPending}
+                aria-label="Delete note"
+                onClick={async () => {
+                  setIsPending(true)
+                  await deleteNote(note.id)
+                  setIsPending(false)
+                }}
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+            ) : null}
           </div>
         </div>
         <div className="pointer-events-none relative z-10">
