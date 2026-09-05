@@ -51,7 +51,8 @@ export const AvatarUploader = ({
 
     setError("")
 
-    if (!isAvatarMimeType(file.type)) {
+    const mimeType = file.type
+    if (!isAvatarMimeType(mimeType)) {
       setError("Use a JPG, PNG, or WebP image.")
       clearInput()
       return
@@ -65,7 +66,7 @@ export const AvatarUploader = ({
 
     startTransition(async () => {
       const supabase = createClient()
-      const path = getAvatarObjectPath(userId, file.type)
+      const path = getAvatarObjectPath(userId, mimeType)
 
       const { data: existing, error: listError } = await supabase.storage
         .from(PROFILE_AVATARS_BUCKET)
@@ -90,7 +91,7 @@ export const AvatarUploader = ({
         .from(PROFILE_AVATARS_BUCKET)
         .upload(path, file, {
           upsert: true,
-          contentType: file.type,
+          contentType: mimeType,
           cacheControl: "3600",
         })
 
