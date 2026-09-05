@@ -10,8 +10,8 @@ const manifest = (): MetadataRoute.Manifest => {
     scope: "/",
     display: "standalone",
     display_override: ["standalone", "browser"],
-    background_color: "#ffffff",
-    theme_color: "#0a0a0a",
+    background_color: "#000000",
+    theme_color: "#000000",
     orientation: "portrait-primary",
     icons: [
       {
@@ -27,7 +27,7 @@ const manifest = (): MetadataRoute.Manifest => {
         purpose: "any",
       },
       {
-        src: "/icons/icon-512.png",
+        src: "/icons/icon-512-maskable.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",

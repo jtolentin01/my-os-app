@@ -10,6 +10,7 @@ import { toPlainNoteText } from "@/apps/notes/utils/content"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { UserAvatar } from "@/platform/profile/user-avatar"
 import {
   Card,
   CardContent,
@@ -26,7 +27,7 @@ const DashboardPage = async () => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name")
+    .select("display_name, avatar_url")
     .eq("id", user!.id)
     .maybeSingle()
 
@@ -63,13 +64,22 @@ const DashboardPage = async () => {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
       <div>
         <p className="text-sm text-muted-foreground">{format(new Date(), "EEEE, MMMM d")}</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-          {greeting}, {displayName}
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          This is your personal operating system. Diet and Notes are available now — more life
-          apps will plug into this same space.
-        </p>
+        <div className="mt-3 flex items-center gap-4">
+          <UserAvatar
+            avatarUrl={profile?.avatar_url}
+            displayName={displayName}
+            className="h-16 w-16 shrink-0 sm:h-20 sm:w-20"
+          />
+          <div className="min-w-0 flex-1">
+            <h1 className="text-3xl font-semibold tracking-tight">
+              {greeting}, {displayName}
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+              This is your personal operating system. Diet and Notes are available now. More life
+              apps will plug into this same space.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

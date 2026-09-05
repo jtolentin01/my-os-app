@@ -14,7 +14,7 @@ const AppsLayout = async ({ children }: { children: React.ReactNode }) => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name")
+    .select("display_name, avatar_url")
     .eq("id", user.id)
     .maybeSingle()
 
@@ -25,7 +25,11 @@ const AppsLayout = async ({ children }: { children: React.ReactNode }) => {
     "User"
 
   return (
-    <AppShell userEmail={user.email} displayName={displayName}>
+    <AppShell
+      userEmail={user.email}
+      displayName={displayName}
+      avatarUrl={profile?.avatar_url}
+    >
       {children}
     </AppShell>
   )

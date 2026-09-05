@@ -37,7 +37,7 @@ const HomePage = async () => {
         </h1>
         <p className="mt-4 max-w-xl text-base text-muted-foreground md:text-lg">
           Your life. Your system. Start with a weekly diet planner, then grow into money, goals,
-          habits, and more — all in one personal space.
+          habits, and more, all in one personal space.
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link href="/signup" className={cn(buttonVariants({ size: "lg" }))}>

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { ThemeSelector } from "@/platform/theme/theme-selector"
 import { AccentSelector } from "@/platform/theme/accent-selector"
 import { InstallAppCard } from "@/platform/pwa/install-app-card"
+import { AvatarUploader } from "@/platform/profile/avatar-uploader"
 import {
   Card,
   CardContent,
@@ -18,9 +19,15 @@ const SettingsPage = async () => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, created_at")
+    .select("display_name, avatar_url, created_at")
     .eq("id", user!.id)
     .maybeSingle()
+
+  const displayName =
+    profile?.display_name ||
+    user?.user_metadata?.display_name ||
+    user?.email?.split("@")[0] ||
+    "User"
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
@@ -37,13 +44,14 @@ const SettingsPage = async () => {
           <CardDescription>Your account details in this personal system</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4 text-sm">
-          <div className="flex items-center justify-between gap-4 border-b pb-3">
+          <AvatarUploader
+            userId={user!.id}
+            displayName={displayName}
+            avatarUrl={profile?.avatar_url}
+          />
+          <div className="flex items-center justify-between gap-4 border-b border-t py-3">
             <span className="text-muted-foreground">Display name</span>
-            <span className="font-medium">
-              {profile?.display_name ||
-                user?.user_metadata?.display_name ||
-                user?.email?.split("@")[0]}
-            </span>
+            <span className="font-medium">{displayName}</span>
           </div>
           <div className="flex items-center justify-between gap-4 border-b pb-3">
             <span className="text-muted-foreground">Email</span>
@@ -54,7 +62,7 @@ const SettingsPage = async () => {
             <span className="font-medium">
               {profile?.created_at
                 ? new Date(profile.created_at).toLocaleDateString()
-                : "—"}
+                : "N/A"}
             </span>
           </div>
         </CardContent>

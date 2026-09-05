@@ -38,7 +38,7 @@ export const getWeekDates = (weekStart: string) => {
 export const formatWeekRange = (weekStart: string) => {
   const start = parseISO(weekStart)
   const end = addDays(start, 6)
-  return `${format(start, "MMM d")} – ${format(end, "MMM d, yyyy")}`
+  return `${format(start, "MMM d")} to ${format(end, "MMM d, yyyy")}`
 }
 
 export const shiftWeekStart = (weekStart: string, weeks: number) => {

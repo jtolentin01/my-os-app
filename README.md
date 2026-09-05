@@ -42,15 +42,15 @@ npm run dev
 
 ## Scripts
 
-- `npm run dev` — local development
-- `npm run build` — production build
-- `npm run start` — run production server
-- `npm run lint` — lint
+- `npm run dev` - local development
+- `npm run build` - production build
+- `npm run start` - run production server
+- `npm run lint` - lint
 
 ## Structure
 
-- `src/platform` — shell, auth, app registry
-- `src/apps/diet` — diet module
-- `src/app` — routes only
-- `src/components/ui` — design system
-- `src/lib/supabase` — Supabase clients
+- `src/platform` - shell, auth, app registry
+- `src/apps/diet` - diet module
+- `src/app` - routes only
+- `src/components/ui` - design system
+- `src/lib/supabase` - Supabase clients

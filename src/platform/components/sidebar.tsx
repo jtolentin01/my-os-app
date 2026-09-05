@@ -7,6 +7,8 @@ import { Menu } from "lucide-react"
 import { getEnabledApps, platformNav } from "@/platform/config/apps.registry"
 import { signOut } from "@/platform/auth/actions"
 import { ThemeToggle } from "@/platform/theme/theme-toggle"
+import { UserAvatar } from "@/platform/profile/user-avatar"
+import { BrandLogo } from "@/platform/components/brand-logo"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -17,12 +19,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-
 import { useOnlineStatus, useHasMounted } from "@/platform/offline/use-online-status"
 
 type SidebarProps = {
   userEmail?: string | null
   displayName?: string | null
+  avatarUrl?: string | null
 }
 
 const NavLinks = ({ onNavigate }: { onNavigate?: () => void }) => {
@@ -93,15 +95,42 @@ const NavLinks = ({ onNavigate }: { onNavigate?: () => void }) => {
   )
 }
 
-export const Sidebar = ({ userEmail, displayName }: SidebarProps) => {
+const SidebarUser = ({
+  userEmail,
+  displayName,
+  avatarUrl,
+}: SidebarProps) => {
+  return (
+    <>
+      <div className="flex items-center gap-3">
+        <UserAvatar
+          avatarUrl={avatarUrl}
+          displayName={displayName}
+          size="default"
+        />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium">{displayName || "User"}</p>
+          <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
+        </div>
+      </div>
+      <form action={signOut} className="mt-3">
+        <Button type="submit" variant="outline" size="sm" className="w-full">
+          Sign out
+        </Button>
+      </form>
+    </>
+  )
+}
+
+export const Sidebar = ({ userEmail, displayName, avatarUrl }: SidebarProps) => {
   const [open, setOpen] = useState(false)
 
   return (
     <>
       <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar md:flex md:h-full md:flex-col">
         <div className="flex h-14 items-center justify-between gap-2 px-5">
-          <Link href="/dashboard" className="text-sm font-semibold tracking-tight">
-            My OS
+          <Link href="/dashboard" aria-label="My OS" className="flex items-center">
+            <BrandLogo />
           </Link>
           <ThemeToggle />
         </div>
@@ -110,19 +139,17 @@ export const Sidebar = ({ userEmail, displayName }: SidebarProps) => {
           <NavLinks />
         </nav>
         <div className="border-t border-sidebar-border p-4">
-          <p className="truncate text-sm font-medium">{displayName || "User"}</p>
-          <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
-          <form action={signOut} className="mt-3">
-            <Button type="submit" variant="outline" size="sm" className="w-full">
-              Sign out
-            </Button>
-          </form>
+          <SidebarUser
+            userEmail={userEmail}
+            displayName={displayName}
+            avatarUrl={avatarUrl}
+          />
         </div>
       </aside>
 
       <div className="sticky top-0 z-20 flex h-14 w-full shrink-0 items-center justify-between border-b bg-background px-4 md:hidden">
-        <Link href="/dashboard" className="text-sm font-semibold tracking-tight">
-          My OS
+        <Link href="/dashboard" aria-label="My OS" className="flex items-center">
+          <BrandLogo />
         </Link>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -134,19 +161,20 @@ export const Sidebar = ({ userEmail, displayName }: SidebarProps) => {
             </SheetTrigger>
             <SheetContent side="left" className="flex w-72 flex-col p-0">
               <SheetHeader className="border-b px-4 py-3">
-                <SheetTitle>My OS</SheetTitle>
+                <SheetTitle className="flex items-center">
+                  <BrandLogo />
+                  <span className="sr-only">My OS</span>
+                </SheetTitle>
               </SheetHeader>
               <div className="flex-1 overflow-y-auto p-3">
                 <NavLinks onNavigate={() => setOpen(false)} />
               </div>
               <div className="border-t p-4">
-                <p className="truncate text-sm font-medium">{displayName || "User"}</p>
-                <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
-                <form action={signOut} className="mt-3">
-                  <Button type="submit" variant="outline" size="sm" className="w-full">
-                    Sign out
-                  </Button>
-                </form>
+                <SidebarUser
+                  userEmail={userEmail}
+                  displayName={displayName}
+                  avatarUrl={avatarUrl}
+                />
               </div>
             </SheetContent>
           </Sheet>
