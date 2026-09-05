@@ -1,14 +1,18 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { formatDistanceToNow } from "date-fns"
 import { Bell, Plus, Trash2 } from "lucide-react"
 import {
   createMealAction,
   deleteMealAction,
 } from "@/apps/diet/services/actions"
-import type { Meal, MealType } from "@/apps/diet/types"
+import type { Meal, MealType, MenuItem } from "@/apps/diet/types"
 import { MEAL_TYPES } from "@/apps/diet/types"
+import {
+  formatNutritionLine,
+  nutritionFromMeal,
+} from "@/apps/diet/utils/nutrition"
 import {
   buildMealRemindAt,
   DEFAULT_MEAL_REMINDER_TIMES,
@@ -41,6 +45,8 @@ type MealCardProps = {
 }
 
 export const MealCard = ({ meal }: MealCardProps) => {
+  const nutrition = nutritionFromMeal(meal)
+
   return (
     <div className="group flex items-start justify-between gap-3 rounded-lg border border-border/70 bg-muted/70 px-3 py-2.5">
       <div className="min-w-0">
@@ -59,8 +65,16 @@ export const MealCard = ({ meal }: MealCardProps) => {
           ) : null}
         </div>
         <p className="truncate text-sm font-medium">{meal.title}</p>
+        {nutrition ? (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {formatNutritionLine(nutrition)}
+            {meal.servings !== 1 ? ` · ×${meal.servings}` : ""}
+          </p>
+        ) : null}
         {meal.notes ? (
-          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{meal.notes}</p>
+          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+            {meal.notes}
+          </p>
         ) : null}
       </div>
       <form
@@ -87,6 +101,7 @@ type AddMealDialogProps = {
   mealPlanId: string
   dayOfWeek: number
   weekStart: string
+  menuItems: MenuItem[]
   defaultMealType?: MealType
 }
 
@@ -94,10 +109,14 @@ export const AddMealDialog = ({
   mealPlanId,
   dayOfWeek,
   weekStart,
+  menuItems,
   defaultMealType = "breakfast",
 }: AddMealDialogProps) => {
   const [open, setOpen] = useState(false)
   const [mealType, setMealType] = useState<MealType>(defaultMealType)
+  const [menuItemId, setMenuItemId] = useState<string>("")
+  const [title, setTitle] = useState("")
+  const [servings, setServings] = useState("1")
   const [remindEnabled, setRemindEnabled] = useState(false)
   const [remindTime, setRemindTime] = useState<string>(
     DEFAULT_MEAL_REMINDER_TIMES[defaultMealType]
@@ -105,11 +124,10 @@ export const AddMealDialog = ({
   const [error, setError] = useState("")
   const [isPending, setIsPending] = useState(false)
 
-  useEffect(() => {
-    if (!remindEnabled) {
-      setRemindTime(DEFAULT_MEAL_REMINDER_TIMES[mealType])
-    }
-  }, [mealType, remindEnabled])
+  const selectedMenuItem = useMemo(
+    () => menuItems.find((item) => item.id === menuItemId) ?? null,
+    [menuItems, menuItemId]
+  )
 
   const remindAt = useMemo(() => {
     if (!remindEnabled) return null
@@ -122,16 +140,49 @@ export const AddMealDialog = ({
     setOpen(nextOpen)
     if (nextOpen) {
       setMealType(defaultMealType)
+      setMenuItemId("")
+      setTitle("")
+      setServings("1")
       setRemindEnabled(false)
       setRemindTime(DEFAULT_MEAL_REMINDER_TIMES[defaultMealType])
       setError("")
     }
   }
 
+  const handleMealTypeChange = (value: string | null) => {
+    if (!value) return
+    const nextType = value as MealType
+    setMealType(nextType)
+    if (!remindEnabled) {
+      setRemindTime(DEFAULT_MEAL_REMINDER_TIMES[nextType])
+    }
+  }
+
+  const handleMenuSelect = (value: string | null) => {
+    const nextId = value ?? ""
+    setMenuItemId(nextId)
+    if (!nextId) return
+    const item = menuItems.find((entry) => entry.id === nextId)
+    if (item) {
+      setTitle(item.name)
+    }
+  }
+
   const handleSubmit = async (formData: FormData) => {
     setIsPending(true)
     setError("")
+
+    const resolvedTitle = title.trim() || selectedMenuItem?.name || ""
+    if (!resolvedTitle) {
+      setIsPending(false)
+      setError("Choose a menu dish or enter a title.")
+      return
+    }
+
     formData.set("mealType", mealType)
+    formData.set("title", resolvedTitle)
+    formData.set("menuItemId", menuItemId)
+    formData.set("servings", servings || "1")
 
     if (remindEnabled) {
       if (!remindAt) {
@@ -173,13 +224,17 @@ export const AddMealDialog = ({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger
         render={
-          <Button variant="outline" size="sm" className="w-full border-primary/30 text-primary hover:bg-primary/10" />
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full border-primary/30 text-primary hover:bg-primary/10"
+          />
         }
       >
         <Plus className="size-3.5" />
         Add meal
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[min(92dvh,720px)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add meal</DialogTitle>
         </DialogHeader>
@@ -187,33 +242,81 @@ export const AddMealDialog = ({
           <input type="hidden" name="mealPlanId" value={mealPlanId} />
           <input type="hidden" name="dayOfWeek" value={dayOfWeek} />
           <div className="flex flex-col gap-2">
-            <Label htmlFor={`title-${dayOfWeek}`}>Dish</Label>
-            <Input
-              id={`title-${dayOfWeek}`}
-              name="title"
-              placeholder="Grilled chicken with rice"
-              required
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label>Meal type</Label>
+            <Label>From menu</Label>
             <Select
-              value={mealType}
-              onValueChange={(value) => {
-                if (value) setMealType(value as MealType)
-              }}
+              value={menuItemId || null}
+              onValueChange={handleMenuSelect}
             >
-              <SelectTrigger className="w-full capitalize">
-                <SelectValue />
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Pick a dish (optional)" />
               </SelectTrigger>
               <SelectContent>
-                {MEAL_TYPES.map((type) => (
-                  <SelectItem key={type} value={type} className="capitalize">
-                    {type}
+                {menuItems.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {selectedMenuItem ? (
+              <p className="text-xs text-muted-foreground">
+                {formatNutritionLine({
+                  calories: selectedMenuItem.calories,
+                  carbs_g: selectedMenuItem.carbs_g,
+                  protein_g: selectedMenuItem.protein_g,
+                  fat_g: selectedMenuItem.fat_g,
+                })}{" "}
+                · {selectedMenuItem.serving_label}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Prefer picking from Menu so weekly nutrition can be calculated.
+              </p>
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={`title-${dayOfWeek}`}>Dish</Label>
+            <Input
+              id={`title-${dayOfWeek}`}
+              name="title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="Grilled chicken with rice"
+              required={!menuItemId}
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label>Meal type</Label>
+              <Select
+                value={mealType}
+                onValueChange={handleMealTypeChange}
+              >
+                <SelectTrigger className="w-full capitalize">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MEAL_TYPES.map((type) => (
+                    <SelectItem key={type} value={type} className="capitalize">
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`servings-${dayOfWeek}`}>Servings</Label>
+              <Input
+                id={`servings-${dayOfWeek}`}
+                name="servings"
+                type="number"
+                min="0.25"
+                max="20"
+                step="0.25"
+                value={servings}
+                onChange={(event) => setServings(event.target.value)}
+              />
+            </div>
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor={`notes-${dayOfWeek}`}>Notes</Label>

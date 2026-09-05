@@ -15,6 +15,7 @@ import type { UserMemory } from "@/platform/memory/types"
 const revalidateChat = () => {
   revalidatePath("/chat")
   revalidatePath("/notes")
+  revalidatePath("/diet")
   revalidatePath("/settings")
   revalidatePath("/dashboard")
 }

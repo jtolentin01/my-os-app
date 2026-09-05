@@ -78,7 +78,7 @@ export const getOrCreateMealPlan = async (
 
   const { data: meals, error: mealsError } = await supabase
     .from("meals")
-    .select("*")
+    .select("*, menu_item:menu_items(*)")
     .eq("meal_plan_id", plan.id)
     .order("day_of_week", { ascending: true })
     .order("sort_order", { ascending: true })
@@ -90,7 +90,22 @@ export const getOrCreateMealPlan = async (
 
   return {
     ...plan,
-    meals: (meals ?? []) as Meal[],
+    meals: ((meals ?? []) as Array<Meal & { menu_item?: Meal["menu_item"] }>).map(
+      (meal) => ({
+        ...meal,
+        servings: Number(meal.servings) || 1,
+        menu_item_id: meal.menu_item_id ?? null,
+        menu_item: meal.menu_item
+          ? {
+              ...meal.menu_item,
+              calories: Number(meal.menu_item.calories) || 0,
+              carbs_g: Number(meal.menu_item.carbs_g) || 0,
+              protein_g: Number(meal.menu_item.protein_g) || 0,
+              fat_g: Number(meal.menu_item.fat_g) || 0,
+            }
+          : null,
+      })
+    ),
   }
 }
 
@@ -101,6 +116,8 @@ export const createMeal = async (input: {
   title: string
   notes?: string
   remindAt?: string | null
+  menuItemId?: string | null
+  servings?: number
 }) => {
   const supabase = await createClient()
   const userId = await getCurrentUserId()
@@ -125,6 +142,28 @@ export const createMeal = async (input: {
     throw new Error("You can't add meals to a past day.")
   }
 
+  let title = input.title
+  const menuItemId = input.menuItemId || null
+
+  if (menuItemId) {
+    const { data: menuItem, error: menuError } = await supabase
+      .from("menu_items")
+      .select("id, name")
+      .eq("id", menuItemId)
+      .eq("user_id", userId)
+      .maybeSingle()
+
+    if (menuError) {
+      throw new Error(menuError.message)
+    }
+
+    if (!menuItem) {
+      throw new Error("Menu item not found.")
+    }
+
+    title = title.trim() || menuItem.name
+  }
+
   const { data, error } = await supabase
     .from("meals")
     .insert({
@@ -132,10 +171,12 @@ export const createMeal = async (input: {
       meal_plan_id: input.mealPlanId,
       day_of_week: input.dayOfWeek,
       meal_type: input.mealType,
-      title: input.title,
+      title,
       notes: input.notes || null,
       remind_at: input.remindAt || null,
       reminder_sent_at: null,
+      menu_item_id: menuItemId,
+      servings: input.servings ?? 1,
     })
     .select("*")
     .single()

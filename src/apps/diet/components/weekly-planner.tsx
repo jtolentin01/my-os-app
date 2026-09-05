@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { AddMealDialog, MealCard } from "@/apps/diet/components/meal-form"
-import type { MealPlanWithMeals } from "@/apps/diet/types"
+import { WeekNutritionSummary } from "@/apps/diet/components/week-nutrition-summary"
+import type { MealPlanWithMeals, MenuItem } from "@/apps/diet/types"
 import {
   formatWeekRange,
   getWeekDates,
@@ -20,9 +21,10 @@ import {
 
 type WeeklyPlannerProps = {
   plan: MealPlanWithMeals
+  menuItems: MenuItem[]
 }
 
-export const WeeklyPlanner = ({ plan }: WeeklyPlannerProps) => {
+export const WeeklyPlanner = ({ plan, menuItems }: WeeklyPlannerProps) => {
   const days = getWeekDates(plan.week_start)
   const previousWeek = shiftWeekStart(plan.week_start, -1)
   const nextWeek = shiftWeekStart(plan.week_start, 1)
@@ -31,14 +33,14 @@ export const WeeklyPlanner = ({ plan }: WeeklyPlannerProps) => {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Diet</h1>
+          <h2 className="text-lg font-semibold tracking-tight">This week</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Plan your dishes for the week and keep meals simple.
+            Pick dishes from your menu and track nutrition across the week.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href={`/diet?week=${previousWeek}`}
+            href={`/diet?tab=week&week=${previousWeek}`}
             aria-label="Previous week"
             className={cn(buttonVariants({ variant: "outline", size: "icon-sm" }))}
           >
@@ -48,7 +50,7 @@ export const WeeklyPlanner = ({ plan }: WeeklyPlannerProps) => {
             {formatWeekRange(plan.week_start)}
           </div>
           <Link
-            href={`/diet?week=${nextWeek}`}
+            href={`/diet?tab=week&week=${nextWeek}`}
             aria-label="Next week"
             className={cn(buttonVariants({ variant: "outline", size: "icon-sm" }))}
           >
@@ -57,9 +59,13 @@ export const WeeklyPlanner = ({ plan }: WeeklyPlannerProps) => {
         </div>
       </div>
 
+      <WeekNutritionSummary plan={plan} />
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {days.map((day) => {
-          const dayMeals = plan.meals.filter((meal) => meal.day_of_week === day.dayOfWeek)
+          const dayMeals = plan.meals.filter(
+            (meal) => meal.day_of_week === day.dayOfWeek
+          )
           const isPast = isPastCalendarDay(day.isoDate)
 
           return (
@@ -102,6 +108,7 @@ export const WeeklyPlanner = ({ plan }: WeeklyPlannerProps) => {
                     mealPlanId={plan.id}
                     dayOfWeek={day.dayOfWeek}
                     weekStart={plan.week_start}
+                    menuItems={menuItems}
                   />
                 ) : null}
               </CardContent>

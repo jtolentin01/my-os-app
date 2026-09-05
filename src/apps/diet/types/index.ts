@@ -12,6 +12,39 @@ export const DAY_LABELS = [
   "Sunday",
 ] as const
 
+export const MENU_CATEGORIES = [
+  "viand",
+  "rice",
+  "soup",
+  "snack",
+  "drink",
+  "other",
+] as const
+
+export type MenuCategory = (typeof MENU_CATEGORIES)[number]
+
+export type NutritionFacts = {
+  calories: number
+  carbs_g: number
+  protein_g: number
+  fat_g: number
+}
+
+export type MenuItem = {
+  id: string
+  user_id: string
+  name: string
+  category: string | null
+  serving_label: string
+  calories: number
+  carbs_g: number
+  protein_g: number
+  fat_g: number
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
 export type MealPlan = {
   id: string
   user_id: string
@@ -33,8 +66,11 @@ export type Meal = {
   sort_order: number
   remind_at: string | null
   reminder_sent_at: string | null
+  menu_item_id: string | null
+  servings: number
   created_at: string
   updated_at: string
+  menu_item?: MenuItem | null
 }
 
 export type MealPlanWithMeals = MealPlan & {

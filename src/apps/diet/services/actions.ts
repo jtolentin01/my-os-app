@@ -13,6 +13,7 @@ import {
 
 export const createMealAction = async (formData: FormData) => {
   const remindAtRaw = formData.get("remindAt")
+  const menuItemIdRaw = String(formData.get("menuItemId") ?? "").trim()
   const parsed = createMealSchema.safeParse({
     mealPlanId: formData.get("mealPlanId"),
     dayOfWeek: formData.get("dayOfWeek"),
@@ -23,6 +24,8 @@ export const createMealAction = async (formData: FormData) => {
       typeof remindAtRaw === "string" && remindAtRaw.length > 0
         ? remindAtRaw
         : null,
+    menuItemId: menuItemIdRaw || null,
+    servings: formData.get("servings") || 1,
   })
 
   if (!parsed.success) {
@@ -32,6 +35,7 @@ export const createMealAction = async (formData: FormData) => {
   try {
     await createMeal(parsed.data)
     revalidatePath("/diet")
+    revalidatePath("/dashboard")
     return { success: true }
   } catch (error) {
     return {
