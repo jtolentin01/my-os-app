@@ -31,8 +31,8 @@ export const AppShell = ({
         displayName={displayName}
         avatarUrl={avatarUrl}
       />
-      <div className="flex min-w-0 flex-1 flex-col md:overflow-y-auto">
-        <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
+      <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden md:overflow-y-auto">
+        <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">
           {showOfflineMessage ? <OfflineMessage /> : children}
         </main>
       </div>

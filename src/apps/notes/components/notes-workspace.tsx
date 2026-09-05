@@ -38,10 +38,10 @@ const NotesWorkspaceContent = ({ query = "" }: { query?: string }) => {
   }, [query])
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
-      <div className="sticky top-14 z-10 -mx-4 flex flex-col gap-4 border-b bg-background/95 px-4 py-4 backdrop-blur-sm md:static md:top-auto md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
+    <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6">
+      <div className="sticky top-14 z-10 -mx-4 flex min-w-0 flex-col gap-4 border-b bg-background/95 px-4 py-4 backdrop-blur-sm md:static md:top-auto md:mx-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+        <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
             <h1 className="text-2xl font-semibold tracking-tight">Notes</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Capture ideas, reminders, and thoughts in one place.
@@ -120,7 +120,7 @@ const NotesWorkspaceContent = ({ query = "" }: { query?: string }) => {
           </p>
         </div>
       ) : (
-        <div className="grid gap-3">
+        <div className="grid min-w-0 gap-3">
           {visibleNotes.map((note) => (
             <NoteCard key={note.id} note={note} />
           ))}

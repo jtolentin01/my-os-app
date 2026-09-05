@@ -1,5 +1,6 @@
 export const isEmptyNoteHtml = (html?: string | null) => {
   if (!html) return true
+  if (/<table[\s>]/i.test(html)) return false
   const text = html
     .replace(/<br\s*\/?>/gi, "")
     .replace(/&nbsp;/gi, " ")

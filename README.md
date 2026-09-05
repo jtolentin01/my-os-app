@@ -49,8 +49,15 @@ npm run dev
 
 ## Structure
 
-- `src/platform` - shell, auth, app registry
+- `src/platform` - shell, auth, app registry, AI client
 - `src/apps/diet` - diet module
+- `src/apps/notes` - notes module (+ AI assistant)
 - `src/app` - routes only
 - `src/components/ui` - design system
 - `src/lib/supabase` - Supabase clients
+
+## Notes AI
+
+Set `OPENAI_API_KEY` in `.env.local` (optional `OPENAI_MODEL`, defaults to `gpt-4o-mini`).
+The Notes editor includes a side assistant for summarize / rewrite / title / extract.
+Suggestions apply to the editor only; saving still goes through normal note actions.

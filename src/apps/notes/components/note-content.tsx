@@ -20,7 +20,7 @@ export const NoteContent = ({ html, className, clamp = false }: NoteContentProps
   return (
     <div
       className={cn(
-        "note-content text-sm text-muted-foreground",
+        "note-content min-w-0 max-w-full overflow-hidden text-sm break-words text-muted-foreground",
         clamp && "line-clamp-4",
         className
       )}

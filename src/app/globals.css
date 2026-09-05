@@ -201,6 +201,12 @@ html.dark[data-accent="rose"] {
   }
 }
 
+.note-content {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .note-editor p,
 .note-content p {
   margin: 0.35em 0;
@@ -332,10 +338,124 @@ html.dark[data-accent="rose"] {
   text-underline-offset: 2px;
 }
 
+.note-editor .tableWrapper,
+.note-content .tableWrapper {
+  display: block;
+  max-width: 100%;
+  margin: 0.35em 0 0.75em;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.note-editor table,
+.note-content table,
+.note-editor .note-table,
+.note-content .note-table {
+  display: table;
+  width: max-content;
+  max-width: 100%;
+  min-width: min(100%, 10rem);
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: transparent;
+}
+
+.note-content table,
+.note-content .note-table {
+  width: 100%;
+  max-width: 100%;
+}
+
+.note-editor th,
+.note-content th,
+.note-editor td,
+.note-content td {
+  position: relative;
+  display: table-cell;
+  min-width: 3rem;
+  max-width: 14rem;
+  vertical-align: top;
+  padding: 0.45rem 0.65rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  box-sizing: border-box;
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  background: transparent;
+  color: var(--foreground);
+  font-weight: 400;
+  text-align: left;
+}
+
+html.dark .note-editor th,
+html.dark .note-content th,
+html.dark .note-editor td,
+html.dark .note-content td {
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+.note-editor th > p,
+.note-content th > p,
+.note-editor td > p,
+.note-content td > p {
+  margin: 0;
+}
+
+.note-editor .selectedCell::after {
+  pointer-events: none;
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(45, 212, 191, 0.12);
+  z-index: 1;
+}
+
 .note-editor p.is-editor-empty:first-child::before {
   color: var(--muted-foreground);
   content: attr(data-placeholder);
   float: left;
   height: 0;
   pointer-events: none;
+}
+
+.note-ai-pending-field {
+  border-color: rgba(45, 212, 191, 0.45) !important;
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.12);
+  background: rgba(45, 212, 191, 0.06);
+}
+
+html.dark .note-ai-pending-field {
+  background: rgba(45, 212, 191, 0.08);
+}
+
+.note-editor [data-ai-change="true"],
+.note-content [data-ai-change="true"] {
+  border-radius: 0.35rem;
+  background: rgba(45, 212, 191, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.35);
+}
+
+.note-editor .tableWrapper[data-ai-change="true"],
+.note-content .tableWrapper[data-ai-change="true"] {
+  border-radius: 0.45rem;
+  padding: 0.15rem;
+  background: rgba(45, 212, 191, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.4);
+}
+
+.note-editor table[data-ai-change="true"],
+.note-content table[data-ai-change="true"] {
+  background: rgba(45, 212, 191, 0.08);
+}
+
+.note-editor table[data-ai-change="true"] th,
+.note-editor table[data-ai-change="true"] td,
+.note-content table[data-ai-change="true"] th,
+.note-content table[data-ai-change="true"] td {
+  background: rgba(45, 212, 191, 0.12);
+  border-color: rgba(45, 212, 191, 0.45);
+}
+
+html.dark .note-editor [data-ai-change="true"],
+html.dark .note-content [data-ai-change="true"] {
+  background: rgba(45, 212, 191, 0.16);
 }

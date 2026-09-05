@@ -1,11 +1,15 @@
 "use client"
 
+import { useEffect, useRef } from "react"
 import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Highlight from "@tiptap/extension-highlight"
 import Placeholder from "@tiptap/extension-placeholder"
 import Underline from "@tiptap/extension-underline"
 import Link from "@tiptap/extension-link"
+import { TableKit } from "@tiptap/extension-table"
+import { AiChangeAttribute } from "@/apps/notes/components/ai-change-attribute"
+import { AiAwareTableView } from "@/apps/notes/components/ai-aware-table-view"
 import {
   Bold,
   Highlighter,
@@ -16,9 +20,11 @@ import {
   Quote,
   Redo2,
   Strikethrough,
+  Table2,
   Underline as UnderlineIcon,
   Undo2,
 } from "lucide-react"
+import { NoteTableControls } from "@/apps/notes/components/note-table-controls"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 
@@ -71,6 +77,8 @@ export const NoteRichEditor = ({
   onChange,
   placeholder = "Write your note...",
 }: NoteRichEditorProps) => {
+  const surfaceRef = useRef<HTMLDivElement>(null)
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -80,6 +88,7 @@ export const NoteRichEditor = ({
         code: false,
         horizontalRule: false,
       }),
+      AiChangeAttribute,
       Underline,
       Highlight.configure({
         multicolor: false,
@@ -93,6 +102,15 @@ export const NoteRichEditor = ({
           target: "_blank",
         },
       }),
+      TableKit.configure({
+        table: {
+          resizable: false,
+          HTMLAttributes: {
+            class: "note-table",
+          },
+          View: AiAwareTableView,
+        },
+      }),
       Placeholder.configure({
         placeholder,
       }),
@@ -100,13 +118,20 @@ export const NoteRichEditor = ({
     content: value || "",
     editorProps: {
       attributes: {
-        class: "note-editor min-h-40 max-h-64 overflow-x-hidden overflow-y-auto break-words px-3 py-2 text-sm outline-none sm:min-h-48 sm:max-h-80",
+        class: "note-editor break-words px-1 py-1 text-sm outline-none",
       },
     },
     onUpdate: ({ editor: current }) => {
       onChange(current.getHTML())
     },
   })
+
+  useEffect(() => {
+    if (!editor) return
+    const current = editor.getHTML()
+    if (value === current) return
+    editor.commands.setContent(value || "", { emitUpdate: false })
+  }, [editor, value])
 
   if (!editor) {
     return (
@@ -201,6 +226,22 @@ export const NoteRichEditor = ({
         <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-4" />
 
         <ToolbarButton
+          label="Insert table"
+          active={editor.isActive("table")}
+          onClick={() =>
+            editor
+              .chain()
+              .focus()
+              .insertTable({ rows: 2, cols: 2, withHeaderRow: false })
+              .run()
+          }
+        >
+          <Table2 className="size-3.5" />
+        </ToolbarButton>
+
+        <Separator orientation="vertical" className="mx-1 data-[orientation=vertical]:h-4" />
+
+        <ToolbarButton
           label="Undo"
           disabled={!editor.can().undo()}
           onClick={() => editor.chain().focus().undo().run()}
@@ -215,7 +256,14 @@ export const NoteRichEditor = ({
           <Redo2 className="size-3.5" />
         </ToolbarButton>
       </div>
-      <EditorContent editor={editor} className="min-w-0 max-w-full" />
+
+      <div
+        ref={surfaceRef}
+        className="relative min-h-40 max-h-64 overflow-x-auto overflow-y-auto px-8 pt-8 pb-3 sm:min-h-48 sm:max-h-80"
+      >
+        <EditorContent editor={editor} className="min-w-0 max-w-full" />
+        <NoteTableControls editor={editor} containerRef={surfaceRef} />
+      </div>
     </div>
   )
 }
