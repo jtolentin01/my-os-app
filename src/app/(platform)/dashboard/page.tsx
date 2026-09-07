@@ -1,5 +1,4 @@
 import Link from "next/link"
-import { format } from "date-fns"
 import { createClient } from "@/lib/supabase/server"
 import { getEnabledApps } from "@/platform/config/apps.registry"
 import { getOrCreateMealPlan } from "@/apps/diet/services/meals"
@@ -10,6 +9,7 @@ import { toPlainNoteText } from "@/apps/notes/utils/content"
 import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { DashboardGreeting } from "@/platform/components/dashboard-greeting"
 import { UserAvatar } from "@/platform/profile/user-avatar"
 import {
   Card,
@@ -56,31 +56,20 @@ const DashboardPage = async () => {
   }
 
   const apps = getEnabledApps()
-  const hour = new Date().getHours()
-  const greeting =
-    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
-      <div>
-        <p className="text-sm text-muted-foreground">{format(new Date(), "EEEE, MMMM d")}</p>
-        <div className="mt-3 flex items-center gap-4">
+      <DashboardGreeting
+        displayName={displayName}
+        description="This is your personal operating system. Chat and Call are your AI entrances. Diet and Notes are available too."
+        avatar={
           <UserAvatar
             avatarUrl={profile?.avatar_url}
             displayName={displayName}
             className="h-16 w-16 shrink-0 sm:h-20 sm:w-20"
           />
-          <div className="min-w-0 flex-1">
-            <h1 className="text-3xl font-semibold tracking-tight">
-              {greeting}, {displayName}
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              This is your personal operating system. Chat is the central AI entrance. Diet and
-              Notes are available now too.
-            </p>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

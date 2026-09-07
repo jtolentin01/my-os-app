@@ -51,6 +51,7 @@ npm run dev
 
 - `src/platform` - shell, auth, app registry, AI runtime, user memory
 - `src/apps/chat` - central AI chat (tools + memory)
+- `src/apps/call` - live voice call (Realtime API, optional camera)
 - `src/apps/diet` - diet module
 - `src/apps/notes` - notes module (+ editor AI assistant)
 - `src/app` - routes only
@@ -61,9 +62,12 @@ npm run dev
 
 Set `OPENAI_API_KEY` in `.env.local` (optional `OPENAI_MODEL`, defaults to `gpt-4o-mini`).
 
+Optional Call env: `OPENAI_REALTIME_MODEL` (default `gpt-realtime`), `OPENAI_REALTIME_VOICE` (default `marin`).
+
 Run `supabase/migrations/202609060001_chat_and_memories.sql` for Chat threads and user memory.
 
 - **Chat** (`/chat`) is the central AI entrance. It can save personal facts and create/search notes via tools.
+- **Call** (`/call`) is a live voice call via the OpenAI Realtime API (interruptible, optional camera frames, Diet/Notes/memory tools).
 - Chat includes a model picker loaded from OpenAI (`/v1/models`), with relative cost labels and env default.
 - Chat automatically extracts personal facts after each user message (likes, people, places, work, and similar).
 - Chat replies as My OS only and does not reveal underlying model vendors.

@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   NotebookPen,
+  Phone,
   Salad,
   Settings,
 } from "lucide-react"
@@ -43,13 +44,22 @@ export const appsRegistry: AppDefinition[] = [
     navOrder: 1,
   },
   {
+    id: "call",
+    name: "Call",
+    description: "Live voice call with My OS",
+    href: "/call",
+    icon: Phone,
+    enabled: true,
+    navOrder: 2,
+  },
+  {
     id: "diet",
     name: "Diet",
     description: "Weekly dish planner and meal guide",
     href: "/diet",
     icon: Salad,
     enabled: true,
-    navOrder: 2,
+    navOrder: 3,
   },
   {
     id: "notes",
@@ -58,7 +68,7 @@ export const appsRegistry: AppDefinition[] = [
     href: "/notes",
     icon: NotebookPen,
     enabled: true,
-    navOrder: 3,
+    navOrder: 4,
   },
 ]
 
