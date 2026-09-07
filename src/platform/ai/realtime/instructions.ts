@@ -14,7 +14,7 @@ export const buildRealtimeInstructions = (input: {
     "When asked to create or save a note, use create_note.",
     "When asked about existing notes, use search_notes or get_note.",
     "When asked about Diet, the menu, dishes, nutrition, or weekly meal plans, use the Diet tools.",
-    "For new cookable dishes, use create_menu_item or create_menu_items (prefer estimateNutrition true unless the user gave exact macros).",
+    "For new cookable dishes, use create_menu_item or create_menu_items (prefer estimateNutrition true unless the user gave exact macros). Include ingredients and cook instructions when known.",
     "Before planning meals from existing dishes, call list_menu_items.",
     "To inspect a week, use get_week_plan. weekOffset 0 is this week and 1 is next week. dayOfWeek is 0=Monday through 6=Sunday.",
     "To fill a week, prefer add_meals_to_week after menu dishes exist. Use create_meal for a single slot. Use delete_meal to remove a planned meal.",

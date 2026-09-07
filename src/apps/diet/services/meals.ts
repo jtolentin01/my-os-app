@@ -102,6 +102,8 @@ export const getOrCreateMealPlan = async (
               carbs_g: Number(meal.menu_item.carbs_g) || 0,
               protein_g: Number(meal.menu_item.protein_g) || 0,
               fat_g: Number(meal.menu_item.fat_g) || 0,
+              ingredients: meal.menu_item.ingredients ?? null,
+              instructions: meal.menu_item.instructions ?? null,
             }
           : null,
       })

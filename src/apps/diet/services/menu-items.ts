@@ -3,7 +3,7 @@ import { getCurrentUserId } from "@/apps/diet/services/meals"
 import type { MenuItem } from "@/apps/diet/types"
 import { roundNutrition } from "@/apps/diet/utils/nutrition"
 
-const mapMenuItem = (row: Record<string, unknown>): MenuItem => ({
+export const mapMenuItem = (row: Record<string, unknown>): MenuItem => ({
   id: String(row.id),
   user_id: String(row.user_id),
   name: String(row.name),
@@ -14,6 +14,8 @@ const mapMenuItem = (row: Record<string, unknown>): MenuItem => ({
   protein_g: Number(row.protein_g) || 0,
   fat_g: Number(row.fat_g) || 0,
   notes: (row.notes as string | null) ?? null,
+  ingredients: (row.ingredients as string | null) ?? null,
+  instructions: (row.instructions as string | null) ?? null,
   created_at: String(row.created_at),
   updated_at: String(row.updated_at),
 })
@@ -64,7 +66,7 @@ export const getMenuItem = async (id: string) => {
   return mapMenuItem(data as Record<string, unknown>)
 }
 
-export const createMenuItem = async (input: {
+type MenuItemWriteInput = {
   name: string
   category?: string | null
   servingLabel: string
@@ -73,7 +75,11 @@ export const createMenuItem = async (input: {
   proteinG: number
   fatG: number
   notes?: string | null
-}) => {
+  ingredients?: string | null
+  instructions?: string | null
+}
+
+export const createMenuItem = async (input: MenuItemWriteInput) => {
   const supabase = await createClient()
   const userId = await getCurrentUserId()
 
@@ -89,6 +95,8 @@ export const createMenuItem = async (input: {
       protein_g: roundNutrition(input.proteinG),
       fat_g: roundNutrition(input.fatG),
       notes: input.notes || null,
+      ingredients: input.ingredients?.trim() || null,
+      instructions: input.instructions?.trim() || null,
     })
     .select("*")
     .single()
@@ -100,17 +108,9 @@ export const createMenuItem = async (input: {
   return mapMenuItem(data as Record<string, unknown>)
 }
 
-export const updateMenuItem = async (input: {
-  id: string
-  name: string
-  category?: string | null
-  servingLabel: string
-  calories: number
-  carbsG: number
-  proteinG: number
-  fatG: number
-  notes?: string | null
-}) => {
+export const updateMenuItem = async (
+  input: MenuItemWriteInput & { id: string }
+) => {
   const supabase = await createClient()
   const userId = await getCurrentUserId()
 
@@ -125,6 +125,8 @@ export const updateMenuItem = async (input: {
       protein_g: roundNutrition(input.proteinG),
       fat_g: roundNutrition(input.fatG),
       notes: input.notes || null,
+      ingredients: input.ingredients?.trim() || null,
+      instructions: input.instructions?.trim() || null,
       updated_at: new Date().toISOString(),
     })
     .eq("id", input.id)

@@ -46,6 +46,8 @@ const createMenuItemToolSchema = z.object({
   proteinG: z.number().min(0).max(10000).optional().default(0),
   fatG: z.number().min(0).max(10000).optional().default(0),
   notes: z.string().trim().max(500).nullable().optional().default(null),
+  ingredients: z.string().trim().max(4000).nullable().optional().default(null),
+  instructions: z.string().trim().max(4000).nullable().optional().default(null),
   estimateNutrition: z.boolean().optional().default(true),
 })
 
@@ -68,6 +70,20 @@ const createMenuItemsToolSchema = z.object({
         proteinG: z.number().min(0).max(10000).optional().default(0),
         fatG: z.number().min(0).max(10000).optional().default(0),
         notes: z.string().trim().max(500).nullable().optional().default(null),
+        ingredients: z
+          .string()
+          .trim()
+          .max(4000)
+          .nullable()
+          .optional()
+          .default(null),
+        instructions: z
+          .string()
+          .trim()
+          .max(4000)
+          .nullable()
+          .optional()
+          .default(null),
       })
     )
     .min(1)
@@ -122,6 +138,8 @@ const createMenuItemFromArgs = async (input: z.infer<typeof createMenuItemToolSc
   let proteinG = input.proteinG
   let fatG = input.fatG
   let servingLabel = input.servingLabel
+  let ingredients = input.ingredients
+  let instructions = input.instructions
   let estimateNote: string | null = null
 
   const shouldEstimate =
@@ -134,6 +152,7 @@ const createMenuItemFromArgs = async (input: z.infer<typeof createMenuItemToolSc
         name: input.name,
         servingLabel,
         notes: input.notes ?? "",
+        includeRecipe: !ingredients?.trim() || !instructions?.trim(),
       })
       calories = estimated.calories
       carbsG = estimated.carbs_g
@@ -141,6 +160,12 @@ const createMenuItemFromArgs = async (input: z.infer<typeof createMenuItemToolSc
       fatG = estimated.fat_g
       if (estimated.serving_label?.trim()) {
         servingLabel = estimated.serving_label.trim()
+      }
+      if (!ingredients?.trim() && estimated.ingredients?.length) {
+        ingredients = estimated.ingredients.join("\n")
+      }
+      if (!instructions?.trim() && estimated.instructions?.length) {
+        instructions = estimated.instructions.join("\n")
       }
       estimateNote = estimated.note
     } catch (error) {
@@ -161,6 +186,8 @@ const createMenuItemFromArgs = async (input: z.infer<typeof createMenuItemToolSc
     proteinG,
     fatG,
     notes: input.notes,
+    ingredients,
+    instructions,
   })
 
   return { item, estimateNote }
@@ -204,6 +231,9 @@ export const dietTools: AiToolDefinition[] = [
         carbs_g: item.carbs_g,
         protein_g: item.protein_g,
         fat_g: item.fat_g,
+        has_recipe: Boolean(
+          item.ingredients?.trim() || item.instructions?.trim()
+        ),
       }))
 
       return {
@@ -219,7 +249,7 @@ export const dietTools: AiToolDefinition[] = [
       type: "function",
       name: "create_menu_item",
       description:
-        "Add a reusable dish to the Diet menu with nutrition facts. Set estimateNutrition true to auto-fill macros from the dish name when unsure.",
+        "Add a reusable dish to the Diet menu with nutrition facts and optional recipe. Set estimateNutrition true to auto-fill macros and recipe from the dish name when unsure.",
       strict: true,
       parameters: {
         type: "object",
@@ -235,6 +265,14 @@ export const dietTools: AiToolDefinition[] = [
           proteinG: { type: "number" },
           fatG: { type: "number" },
           notes: { type: ["string", "null"] },
+          ingredients: {
+            type: ["string", "null"],
+            description: "Newlines separate ingredient lines",
+          },
+          instructions: {
+            type: ["string", "null"],
+            description: "Newlines separate cook steps",
+          },
           estimateNutrition: { type: "boolean" },
         },
         required: [
@@ -246,6 +284,8 @@ export const dietTools: AiToolDefinition[] = [
           "proteinG",
           "fatG",
           "notes",
+          "ingredients",
+          "instructions",
           "estimateNutrition",
         ],
         additionalProperties: false,
@@ -274,6 +314,9 @@ export const dietTools: AiToolDefinition[] = [
             carbs_g: item.carbs_g,
             protein_g: item.protein_g,
             fat_g: item.fat_g,
+            has_recipe: Boolean(
+              item.ingredients?.trim() || item.instructions?.trim()
+            ),
             estimate_note: estimateNote,
           },
         }
@@ -316,6 +359,8 @@ export const dietTools: AiToolDefinition[] = [
                 proteinG: { type: "number" },
                 fatG: { type: "number" },
                 notes: { type: ["string", "null"] },
+                ingredients: { type: ["string", "null"] },
+                instructions: { type: ["string", "null"] },
               },
               required: [
                 "name",
@@ -326,6 +371,8 @@ export const dietTools: AiToolDefinition[] = [
                 "proteinG",
                 "fatG",
                 "notes",
+                "ingredients",
+                "instructions",
               ],
               additionalProperties: false,
             },

@@ -3,16 +3,16 @@
 import { useMemo, useState } from "react"
 import { formatDistanceToNow } from "date-fns"
 import { Bell, Plus, Trash2 } from "lucide-react"
+import { MenuItemDetailDialog } from "@/apps/diet/components/menu-item-detail-dialog"
 import {
   createMealAction,
   deleteMealAction,
 } from "@/apps/diet/services/actions"
 import type { Meal, MealType, MenuItem } from "@/apps/diet/types"
 import { MEAL_TYPES } from "@/apps/diet/types"
-import {
-  formatNutritionLine,
-  nutritionFromMeal,
-} from "@/apps/diet/utils/nutrition"
+import { NutritionFactsLine } from "@/apps/diet/components/nutrition-facts-line"
+import { nutritionFromMeal } from "@/apps/diet/utils/nutrition"
+import { hasRecipeContent } from "@/apps/diet/utils/recipe"
 import {
   buildMealRemindAt,
   DEFAULT_MEAL_REMINDER_TIMES,
@@ -39,61 +39,104 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 type MealCardProps = {
   meal: Meal
+  highlighted?: boolean
 }
 
-export const MealCard = ({ meal }: MealCardProps) => {
+export const MealCard = ({ meal, highlighted = false }: MealCardProps) => {
+  const [detailOpen, setDetailOpen] = useState(false)
   const nutrition = nutritionFromMeal(meal)
+  const dish = meal.menu_item ?? null
 
   return (
-    <div className="group flex items-start justify-between gap-3 rounded-lg border border-border/70 bg-muted/70 px-3 py-2.5">
-      <div className="min-w-0">
-        <div className="mb-1 flex flex-wrap items-center gap-2">
-          <Badge
-            variant="secondary"
-            className="capitalize bg-primary/10 text-primary"
-          >
-            {meal.meal_type}
-          </Badge>
-          {meal.remind_at ? (
-            <Badge variant="outline" className="gap-1 font-normal">
-              <Bell className="size-3" />
-              {formatDistanceToNow(new Date(meal.remind_at), { addSuffix: true })}
-            </Badge>
-          ) : null}
-        </div>
-        <p className="truncate text-sm font-medium">{meal.title}</p>
-        {nutrition ? (
-          <p className="mt-1 text-xs text-muted-foreground">
-            {formatNutritionLine(nutrition)}
-            {meal.servings !== 1 ? ` · ×${meal.servings}` : ""}
-          </p>
-        ) : null}
-        {meal.notes ? (
-          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-            {meal.notes}
-          </p>
-        ) : null}
-      </div>
-      <form
-        action={async (formData) => {
-          await deleteMealAction(formData)
+    <>
+      <div
+        role="button"
+        tabIndex={0}
+        className={cn(
+          "group flex cursor-pointer items-start justify-between gap-3 rounded-lg border px-3 py-2.5 transition-colors",
+          highlighted
+            ? "border-primary/50 bg-primary/10 ring-1 ring-primary/25 hover:bg-primary/15"
+            : "border-border/70 bg-muted/70 hover:bg-muted"
+        )}
+        onClick={() => setDetailOpen(true)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault()
+            setDetailOpen(true)
+          }
         }}
       >
-        <input type="hidden" name="id" value={meal.id} />
-        <Button
-          type="submit"
-          variant="ghost"
-          size="icon-sm"
-          className="opacity-70 transition-opacity group-hover:opacity-100"
-          aria-label="Delete meal"
+        <div className="min-w-0">
+          <div className="mb-1 flex flex-wrap items-center gap-2">
+            <Badge
+              variant="secondary"
+              className="capitalize bg-primary/10 text-primary"
+            >
+              {meal.meal_type}
+            </Badge>
+            {highlighted ? (
+              <Badge variant="outline" className="border-primary/40 font-normal text-primary">
+                Up next
+              </Badge>
+            ) : null}
+            {meal.remind_at ? (
+              <Badge variant="outline" className="gap-1 font-normal">
+                <Bell className="size-3" />
+                {formatDistanceToNow(new Date(meal.remind_at), {
+                  addSuffix: true,
+                })}
+              </Badge>
+            ) : null}
+            {dish && hasRecipeContent(dish) ? (
+              <Badge variant="outline" className="font-normal">
+                Recipe
+              </Badge>
+            ) : null}
+          </div>
+          <p className="truncate text-sm font-medium">{meal.title}</p>
+          {nutrition ? (
+            <NutritionFactsLine
+              facts={nutrition}
+              className="mt-1"
+              suffix={meal.servings !== 1 ? `×${meal.servings}` : undefined}
+            />
+          ) : null}
+          {meal.notes ? (
+            <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+              {meal.notes}
+            </p>
+          ) : null}
+        </div>
+        <form
+          action={async (formData) => {
+            await deleteMealAction(formData)
+          }}
+          onClick={(event) => event.stopPropagation()}
         >
-          <Trash2 className="size-3.5" />
-        </Button>
-      </form>
-    </div>
+          <input type="hidden" name="id" value={meal.id} />
+          <Button
+            type="submit"
+            variant="ghost"
+            size="icon-sm"
+            className="opacity-70 transition-opacity group-hover:opacity-100"
+            aria-label="Delete meal"
+          >
+            <Trash2 className="size-3.5" />
+          </Button>
+        </form>
+      </div>
+
+      <MenuItemDetailDialog
+        item={dish}
+        meal={meal}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
+    </>
   )
 }
 
@@ -248,7 +291,9 @@ export const AddMealDialog = ({
               onValueChange={handleMenuSelect}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Pick a dish (optional)" />
+                <SelectValue placeholder="Pick a dish (optional)">
+                  {selectedMenuItem?.name}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {menuItems.map((item) => (
@@ -259,15 +304,15 @@ export const AddMealDialog = ({
               </SelectContent>
             </Select>
             {selectedMenuItem ? (
-              <p className="text-xs text-muted-foreground">
-                {formatNutritionLine({
+              <NutritionFactsLine
+                facts={{
                   calories: selectedMenuItem.calories,
                   carbs_g: selectedMenuItem.carbs_g,
                   protein_g: selectedMenuItem.protein_g,
                   fat_g: selectedMenuItem.fat_g,
-                })}{" "}
-                · {selectedMenuItem.serving_label}
-              </p>
+                }}
+                suffix={selectedMenuItem.serving_label}
+              />
             ) : (
               <p className="text-xs text-muted-foreground">
                 Prefer picking from Menu so weekly nutrition can be calculated.

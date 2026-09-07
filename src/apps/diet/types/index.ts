@@ -41,6 +41,8 @@ export type MenuItem = {
   protein_g: number
   fat_g: number
   notes: string | null
+  ingredients: string | null
+  instructions: string | null
   created_at: string
   updated_at: string
 }

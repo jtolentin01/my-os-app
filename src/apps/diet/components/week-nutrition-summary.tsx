@@ -1,8 +1,6 @@
 import type { MealPlanWithMeals } from "@/apps/diet/types"
-import {
-  formatNutritionLine,
-  sumMealNutrition,
-} from "@/apps/diet/utils/nutrition"
+import { NutritionFactsLine } from "@/apps/diet/components/nutrition-facts-line"
+import { sumMealNutrition } from "@/apps/diet/utils/nutrition"
 import {
   Card,
   CardContent,
@@ -35,7 +33,7 @@ export const WeekNutritionSummary = ({ plan }: WeekNutritionSummaryProps) => {
       </CardHeader>
       {linkedMeals.length > 0 ? (
         <CardContent>
-          <p className="text-sm font-medium">{formatNutritionLine(totals)}</p>
+          <NutritionFactsLine facts={totals} className="text-sm" />
         </CardContent>
       ) : null}
     </Card>

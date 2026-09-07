@@ -19,6 +19,9 @@ export const getDayIsoDate = (weekStart: string, dayOfWeek: number) =>
 export const isPastCalendarDay = (isoDate: string, now: Date = new Date()) =>
   isoDate < formatCalendarDay(now)
 
+export const isTodayCalendarDay = (isoDate: string, now: Date = new Date()) =>
+  isoDate === formatCalendarDay(now)
+
 export const getWeekDates = (weekStart: string) => {
   const start = parseISO(weekStart)
 

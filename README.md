@@ -52,6 +52,7 @@ npm run dev
 - `src/platform` - shell, auth, app registry, AI runtime, user memory
 - `src/apps/chat` - central AI chat (tools + memory)
 - `src/apps/call` - live voice call (Realtime API, optional camera)
+- **Diet** (`/diet`) - weekly planner, menu library with recipes, AI dish suggestions
 - `src/apps/diet` - diet module
 - `src/apps/notes` - notes module (+ editor AI assistant)
 - `src/app` - routes only

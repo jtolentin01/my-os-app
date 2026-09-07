@@ -50,7 +50,7 @@ export const sumMealNutrition = (meals: Meal[]): NutritionFacts =>
   }, emptyNutrition())
 
 export const formatNutritionLine = (facts: NutritionFacts) =>
-  `${Math.round(facts.calories)} kcal · C ${formatGrams(facts.carbs_g)} · P ${formatGrams(facts.protein_g)} · F ${formatGrams(facts.fat_g)}`
+  `${Math.round(facts.calories)} kcal · C ${formatNutritionGrams(facts.carbs_g)} · P ${formatNutritionGrams(facts.protein_g)} · F ${formatNutritionGrams(facts.fat_g)}`
 
-const formatGrams = (value: number) =>
+export const formatNutritionGrams = (value: number) =>
   `${Number.isInteger(value) ? value : value.toFixed(1)}g`

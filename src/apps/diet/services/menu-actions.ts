@@ -16,6 +16,11 @@ const revalidateDiet = () => {
   revalidatePath("/dashboard")
 }
 
+const parseRecipeFields = (formData: FormData) => ({
+  ingredients: String(formData.get("ingredients") ?? "").trim() || null,
+  instructions: String(formData.get("instructions") ?? "").trim() || null,
+})
+
 export const createMenuItemAction = async (formData: FormData) => {
   const categoryRaw = String(formData.get("category") ?? "").trim()
   const parsed = createMenuItemSchema.safeParse({
@@ -27,6 +32,7 @@ export const createMenuItemAction = async (formData: FormData) => {
     proteinG: formData.get("proteinG"),
     fatG: formData.get("fatG"),
     notes: formData.get("notes") || null,
+    ...parseRecipeFields(formData),
   })
 
   if (!parsed.success) {
@@ -57,6 +63,7 @@ export const updateMenuItemAction = async (formData: FormData) => {
     proteinG: formData.get("proteinG"),
     fatG: formData.get("fatG"),
     notes: formData.get("notes") || null,
+    ...parseRecipeFields(formData),
   })
 
   if (!parsed.success) {

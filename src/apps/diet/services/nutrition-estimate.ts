@@ -9,13 +9,15 @@ import { getOpenAIClient, getOpenAIModel } from "@/platform/ai/client"
 import { createClient } from "@/lib/supabase/server"
 
 const SYSTEM_PROMPT = [
-  "You estimate nutrition facts for a single serving of a dish.",
+  "You estimate nutrition facts and a simple home cooking recipe for a single serving of a dish.",
   "Return structured JSON only.",
   "Use realistic everyday cooking estimates, not lab precision.",
   "calories is kcal for one serving.",
   "carbs_g, protein_g, and fat_g are grams for one serving.",
   "serving_label may refine the serving description, or null to keep the user's label.",
   "note is a short plain-text caveat, or null.",
+  "ingredients is a short list of ingredient lines with amounts when possible, or null if includeRecipe is false.",
+  "instructions is a short ordered list of cook steps, or null if includeRecipe is false.",
   "Do not invent branded products. Prefer common homemade or canteen-style portions.",
   "If the dish is vague, assume a typical adult plate/serving and say so in note.",
 ].join(" ")
@@ -32,6 +34,7 @@ export const estimateMenuNutrition = async (
     throw new Error("You must be signed in to estimate nutrition.")
   }
 
+  const includeRecipe = input.includeRecipe !== false
   const client = getOpenAIClient()
   const model = getOpenAIModel()
 
@@ -48,6 +51,7 @@ export const estimateMenuNutrition = async (
           `Dish name: ${input.name}`,
           `Serving: ${input.servingLabel || "1 serving"}`,
           `Notes: ${input.notes.trim() || "(none)"}`,
+          `Include recipe (ingredients + instructions): ${includeRecipe ? "yes" : "no"}`,
         ].join("\n"),
       },
     ],
@@ -64,6 +68,15 @@ export const estimateMenuNutrition = async (
     throw new Error("The assistant returned an empty nutrition estimate.")
   }
 
+  const ingredients =
+    includeRecipe && parsed.ingredients?.length
+      ? parsed.ingredients.map((line) => line.trim()).filter(Boolean)
+      : null
+  const instructions =
+    includeRecipe && parsed.instructions?.length
+      ? parsed.instructions.map((line) => line.trim()).filter(Boolean)
+      : null
+
   return {
     calories: roundNutrition(parsed.calories),
     carbs_g: roundNutrition(parsed.carbs_g),
@@ -71,5 +84,7 @@ export const estimateMenuNutrition = async (
     fat_g: roundNutrition(parsed.fat_g),
     serving_label: parsed.serving_label?.trim() || null,
     note: parsed.note?.trim() || null,
+    ingredients,
+    instructions,
   }
 }
