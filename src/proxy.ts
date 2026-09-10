@@ -3,13 +3,19 @@ import { updateSession } from "@/lib/supabase/middleware"
 
 const publicRoutes = ["/", "/login", "/signup"]
 
-export const proxy = async (request: NextRequest) => {
-  const { supabaseResponse, user } = await updateSession(request)
-  const { pathname } = request.nextUrl
-  const isPublicRoute = publicRoutes.includes(pathname)
-  const isCronRoute = pathname.startsWith("/api/cron/")
+const isCronRoute = (pathname: string) => pathname.startsWith("/api/cron/")
 
-  if (!user && !isPublicRoute && !isCronRoute) {
+export const proxy = async (request: NextRequest) => {
+  const { pathname } = request.nextUrl
+
+  if (isCronRoute(pathname)) {
+    return NextResponse.next()
+  }
+
+  const { supabaseResponse, user } = await updateSession(request)
+  const isPublicRoute = publicRoutes.includes(pathname)
+
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     url.searchParams.set("redirect", pathname)
