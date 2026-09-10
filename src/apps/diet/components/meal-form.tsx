@@ -166,6 +166,7 @@ export const AddMealDialog = ({
   )
   const [error, setError] = useState("")
   const [isPending, setIsPending] = useState(false)
+  const [pendingLabel, setPendingLabel] = useState("Saving...")
 
   const selectedMenuItem = useMemo(
     () => menuItems.find((item) => item.id === menuItemId) ?? null,
@@ -189,6 +190,8 @@ export const AddMealDialog = ({
       setRemindEnabled(false)
       setRemindTime(DEFAULT_MEAL_REMINDER_TIMES[defaultMealType])
       setError("")
+      setIsPending(false)
+      setPendingLabel("Saving...")
     }
   }
 
@@ -211,56 +214,91 @@ export const AddMealDialog = ({
     }
   }
 
-  const handleSubmit = async (formData: FormData) => {
-    setIsPending(true)
+  const handleRemindEnabledChange = async (checked: boolean) => {
     setError("")
 
-    const resolvedTitle = title.trim() || selectedMenuItem?.name || ""
-    if (!resolvedTitle) {
-      setIsPending(false)
-      setError("Choose a menu dish or enter a title.")
+    if (!checked) {
+      setRemindEnabled(false)
       return
     }
 
-    formData.set("mealType", mealType)
-    formData.set("title", resolvedTitle)
-    formData.set("menuItemId", menuItemId)
-    formData.set("servings", servings || "1")
-
-    if (remindEnabled) {
-      if (!remindAt) {
-        setIsPending(false)
-        setError("Choose a valid reminder time.")
-        return
-      }
-
-      if (remindAt.getTime() <= Date.now()) {
-        setIsPending(false)
-        setError("Reminder time must be in the future.")
-        return
-      }
-
+    setPendingLabel("Enabling reminders...")
+    setIsPending(true)
+    try {
       const pushResult = await ensurePushSubscription()
       if (pushResult.error) {
-        setIsPending(false)
+        setRemindEnabled(false)
         setError(pushResult.error)
         return
       }
-
-      formData.set("remindAt", remindAt.toISOString())
-    } else {
-      formData.set("remindAt", "")
+      setRemindEnabled(true)
+    } catch (error) {
+      setRemindEnabled(false)
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to enable notifications."
+      )
+    } finally {
+      setIsPending(false)
+      setPendingLabel("Saving...")
     }
+  }
 
-    const result = await createMealAction(formData)
-    setIsPending(false)
+  const handleSubmit = async (formData: FormData) => {
+    setPendingLabel("Saving...")
+    setIsPending(true)
+    setError("")
 
-    if (result?.error) {
-      setError(result.error)
-      return
+    try {
+      const resolvedTitle = title.trim() || selectedMenuItem?.name || ""
+      if (!resolvedTitle) {
+        setError("Choose a menu dish or enter a title.")
+        return
+      }
+
+      formData.set("mealType", mealType)
+      formData.set("title", resolvedTitle)
+      formData.set("menuItemId", menuItemId)
+      formData.set("servings", servings || "1")
+
+      if (remindEnabled) {
+        if (!remindAt) {
+          setError("Choose a valid reminder time.")
+          return
+        }
+
+        if (remindAt.getTime() <= Date.now()) {
+          setError("Reminder time must be in the future.")
+          return
+        }
+
+        const pushResult = await ensurePushSubscription()
+        if (pushResult.error) {
+          setError(pushResult.error)
+          return
+        }
+
+        formData.set("remindAt", remindAt.toISOString())
+      } else {
+        formData.set("remindAt", "")
+      }
+
+      const result = await createMealAction(formData)
+
+      if (result?.error) {
+        setError(result.error)
+        return
+      }
+
+      setOpen(false)
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Failed to save meal."
+      )
+    } finally {
+      setIsPending(false)
     }
-
-    setOpen(false)
   }
 
   return (
@@ -281,7 +319,13 @@ export const AddMealDialog = ({
         <DialogHeader>
           <DialogTitle>Add meal</DialogTitle>
         </DialogHeader>
-        <form action={handleSubmit} className="flex flex-col gap-4">
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void handleSubmit(new FormData(event.currentTarget))
+          }}
+        >
           <input type="hidden" name="mealPlanId" value={mealPlanId} />
           <input type="hidden" name="dayOfWeek" value={dayOfWeek} />
           <div className="flex flex-col gap-2">
@@ -377,7 +421,10 @@ export const AddMealDialog = ({
               <input
                 type="checkbox"
                 checked={remindEnabled}
-                onChange={(event) => setRemindEnabled(event.target.checked)}
+                disabled={isPending}
+                onChange={(event) => {
+                  void handleRemindEnabledChange(event.target.checked)
+                }}
                 className="size-4 rounded border"
               />
               Remind me
@@ -401,7 +448,7 @@ export const AddMealDialog = ({
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Saving..." : "Save meal"}
+              {isPending ? pendingLabel : "Save meal"}
             </Button>
           </DialogFooter>
         </form>

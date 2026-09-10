@@ -1,10 +1,11 @@
-const CACHE_VERSION = "my-os-v5"
+const CACHE_VERSION = "my-os-v7"
 const PRECACHE_URLS = [
   "/offline.html",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/icons/icon-512-maskable.png",
   "/icons/apple-touch-icon.png",
+  "/icons/badge-72.png",
 ]
 
 self.addEventListener("install", (event) => {
@@ -52,7 +53,21 @@ self.addEventListener("fetch", (event) => {
         })
         .catch(async () => {
           const cached = await caches.match(request)
-          return cached || caches.match("/offline.html")
+          if (cached) {
+            return cached
+          }
+
+          try {
+            return await fetch(request)
+          } catch {
+            return (
+              (await caches.match("/offline.html")) ||
+              new Response("Offline", {
+                status: 503,
+                headers: { "Content-Type": "text/plain" },
+              })
+            )
+          }
         })
     )
     return
@@ -91,7 +106,7 @@ self.addEventListener("push", (event) => {
       body: data.body,
       data: { url: data.url || "/diet" },
       icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
+      badge: "/icons/badge-72.png",
     })
   )
 })

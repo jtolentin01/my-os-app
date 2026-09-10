@@ -9,57 +9,76 @@ const urlBase64ToUint8Array = (base64String: string) => {
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)))
 }
 
-export const ensurePushSubscription = async () => {
-  if (typeof window === "undefined") {
-    return { error: "Push notifications are unavailable." }
+const getServiceWorkerRegistration = async () => {
+  const existing = await navigator.serviceWorker.getRegistration()
+  if (existing) {
+    return existing
   }
 
-  if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
-    return { error: "Push notifications are not supported on this device." }
-  }
-
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-  if (!publicKey) {
-    return { error: "Push notifications are not configured yet." }
-  }
-
-  const permission =
-    Notification.permission === "granted"
-      ? "granted"
-      : await Notification.requestPermission()
-
-  if (permission !== "granted") {
-    return { error: "Notification permission is required for reminders." }
-  }
-
-  let registration = await navigator.serviceWorker.getRegistration()
-  if (!registration) {
-    registration = await navigator.serviceWorker.register("/sw.js", {
-      scope: "/",
-      updateViaCache: "none",
-    })
-  }
-  await navigator.serviceWorker.ready
-
-  const existing = await registration.pushManager.getSubscription()
-  const subscription =
-    existing ??
-    (await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey),
-    }))
-
-  const payload = subscription.toJSON()
-  if (!payload.endpoint || !payload.keys?.p256dh || !payload.keys?.auth) {
-    return { error: "Failed to create push subscription." }
-  }
-
-  return savePushSubscriptionAction({
-    endpoint: payload.endpoint,
-    keys: {
-      p256dh: payload.keys.p256dh,
-      auth: payload.keys.auth,
-    },
-    userAgent: navigator.userAgent,
+  return navigator.serviceWorker.register("/sw.js", {
+    scope: "/",
+    updateViaCache: "none",
   })
+}
+
+export const ensurePushSubscription = async () => {
+  try {
+    if (typeof window === "undefined") {
+      return { error: "Push notifications are unavailable." }
+    }
+
+    if (
+      !("Notification" in window) ||
+      !("serviceWorker" in navigator) ||
+      !("PushManager" in window)
+    ) {
+      return { error: "Push notifications are not supported on this device." }
+    }
+
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    if (!publicKey) {
+      return { error: "Push notifications are not configured yet." }
+    }
+
+    const permission =
+      Notification.permission === "granted"
+        ? "granted"
+        : await Notification.requestPermission()
+
+    if (permission !== "granted") {
+      return { error: "Notification permission is required for reminders." }
+    }
+
+    const registration = await getServiceWorkerRegistration()
+    await navigator.serviceWorker.ready
+
+    const existing = await registration.pushManager.getSubscription()
+    const subscription =
+      existing ??
+      (await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      }))
+
+    const payload = subscription.toJSON()
+    if (!payload.endpoint || !payload.keys?.p256dh || !payload.keys?.auth) {
+      return { error: "Failed to create push subscription." }
+    }
+
+    return savePushSubscriptionAction({
+      endpoint: payload.endpoint,
+      keys: {
+        p256dh: payload.keys.p256dh,
+        auth: payload.keys.auth,
+      },
+      userAgent: navigator.userAgent,
+    })
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to enable push notifications.",
+    }
+  }
 }
