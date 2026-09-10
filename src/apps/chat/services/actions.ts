@@ -16,6 +16,7 @@ const revalidateChat = () => {
   revalidatePath("/chat")
   revalidatePath("/notes")
   revalidatePath("/diet")
+  revalidatePath("/money")
   revalidatePath("/settings")
   revalidatePath("/dashboard")
 }

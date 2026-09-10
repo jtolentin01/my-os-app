@@ -6,6 +6,7 @@ import {
   Phone,
   Salad,
   Settings,
+  Wallet,
 } from "lucide-react"
 
 export type AppDefinition = {
@@ -69,6 +70,15 @@ export const appsRegistry: AppDefinition[] = [
     icon: NotebookPen,
     enabled: true,
     navOrder: 4,
+  },
+  {
+    id: "money",
+    name: "Money",
+    description: "Track income, expenses, and monthly spend",
+    href: "/money",
+    icon: Wallet,
+    enabled: true,
+    navOrder: 5,
   },
 ]
 

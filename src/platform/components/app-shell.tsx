@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import { Sidebar } from "@/platform/components/sidebar"
+import { VoiceAssistantFab } from "@/platform/assistant/voice-assistant-fab"
 import { OfflineMessage } from "@/platform/offline/offline-message"
 import { useHasMounted, useOnlineStatus } from "@/platform/offline/use-online-status"
 import { cn } from "@/lib/utils"
@@ -52,6 +53,7 @@ export const AppShell = ({
           {showOfflineMessage ? <OfflineMessage /> : children}
         </main>
       </div>
+      <VoiceAssistantFab />
     </div>
   )
 }

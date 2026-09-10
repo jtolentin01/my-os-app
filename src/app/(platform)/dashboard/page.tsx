@@ -4,6 +4,13 @@ import { getEnabledApps } from "@/platform/config/apps.registry"
 import { getOrCreateMealPlan } from "@/apps/diet/services/meals"
 import { getUpcomingMeals } from "@/apps/diet/utils/upcoming"
 import { formatWeekRange } from "@/apps/diet/utils/week"
+import { listTransactionsForMonth } from "@/apps/money/services/transactions"
+import {
+  formatCategoryLabel,
+  formatMoney,
+  summarizeTransactions,
+} from "@/apps/money/utils/money"
+import { formatMonthLabel, formatMonthKey } from "@/apps/money/utils/month"
 import { getRecentNotes } from "@/apps/notes/services/notes"
 import { toPlainNoteText } from "@/apps/notes/utils/content"
 import { Badge } from "@/components/ui/badge"
@@ -40,6 +47,11 @@ const DashboardPage = async () => {
   let upcomingMeals: ReturnType<typeof getUpcomingMeals> = []
   let weekLabel = ""
   let recentNotes: Awaited<ReturnType<typeof getRecentNotes>> = []
+  let recentTransactions: Awaited<
+    ReturnType<typeof listTransactionsForMonth>
+  > = []
+  let monthLabel = formatMonthLabel(formatMonthKey())
+  let monthNetLabel = ""
 
   try {
     const plan = await getOrCreateMealPlan()
@@ -55,13 +67,23 @@ const DashboardPage = async () => {
     recentNotes = []
   }
 
+  try {
+    const monthTransactions = await listTransactionsForMonth()
+    const summary = summarizeTransactions(monthTransactions)
+    recentTransactions = monthTransactions.slice(0, 3)
+    monthLabel = formatMonthLabel(formatMonthKey())
+    monthNetLabel = `Net ${formatMoney(summary.net, summary.currency)}`
+  } catch {
+    recentTransactions = []
+  }
+
   const apps = getEnabledApps()
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
       <DashboardGreeting
         displayName={displayName}
-        description="This is your personal operating system. Chat and Call are your AI entrances. Diet and Notes are available too."
+        description="This is your personal operating system. Chat and Call are your AI entrances. Diet, Notes, and Money are available too."
         avatar={
           <UserAvatar
             avatarUrl={profile?.avatar_url}
@@ -148,6 +170,75 @@ const DashboardPage = async () => {
             )}
             <Link href="/notes" className={cn(buttonVariants(), "w-fit")}>
               Open Notes
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Money this month</CardTitle>
+            <CardDescription>
+              {monthNetLabel
+                ? `${monthLabel} · ${monthNetLabel}`
+                : monthLabel}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {recentTransactions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No transactions yet. Log income or an expense in Money.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {recentTransactions.map((transaction) => {
+                  const isIncome = transaction.type === "income"
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="rounded-lg border border-border/70 bg-muted/70 px-3 py-2"
+                    >
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            "capitalize",
+                            isIncome
+                              ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                              : "bg-primary/10 text-primary"
+                          )}
+                        >
+                          {transaction.type}
+                        </Badge>
+                        <Badge variant="outline" className="font-normal">
+                          {formatCategoryLabel(transaction.category)}
+                        </Badge>
+                      </div>
+                      <div className="flex items-baseline justify-between gap-3">
+                        <p className="truncate text-sm font-medium">
+                          {transaction.title}
+                        </p>
+                        <p
+                          className={cn(
+                            "shrink-0 text-sm font-semibold tabular-nums",
+                            isIncome
+                              ? "text-emerald-700 dark:text-emerald-400"
+                              : "text-foreground"
+                          )}
+                        >
+                          {isIncome ? "+" : "-"}
+                          {formatMoney(
+                            transaction.amount,
+                            transaction.currency
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            <Link href="/money" className={cn(buttonVariants(), "w-fit")}>
+              Open Money
             </Link>
           </CardContent>
         </Card>

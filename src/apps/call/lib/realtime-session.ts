@@ -87,7 +87,11 @@ export class RealtimeCallSession {
     return this.noiseMode
   }
 
-  async start(options: { cameraEnabled: boolean; noiseMode: CallNoiseMode }) {
+  async start(options: {
+    cameraEnabled: boolean
+    noiseMode: CallNoiseMode
+    startMuted?: boolean
+  }) {
     this.closed = false
     this.cameraEnabled = options.cameraEnabled
     this.noiseMode = options.noiseMode
@@ -139,6 +143,10 @@ export class RealtimeCallSession {
     this.localStream = micStream
     for (const track of micStream.getAudioTracks()) {
       pc.addTrack(track, micStream)
+    }
+
+    if (options.startMuted) {
+      this.setMuted(true)
     }
 
     if (options.cameraEnabled) {

@@ -1,10 +1,14 @@
 import { dietTools } from "@/platform/ai/tools/diet"
 import { memoryTools } from "@/platform/ai/tools/memory"
+import { moneyTools } from "@/platform/ai/tools/money"
 import { notesTools } from "@/platform/ai/tools/notes"
 import type { AiToolDefinition } from "@/platform/ai/tools/types"
 
 const toolsByName = new Map<string, AiToolDefinition>(
-  [...memoryTools, ...notesTools, ...dietTools].map((tool) => [tool.name, tool])
+  [...memoryTools, ...notesTools, ...dietTools, ...moneyTools].map((tool) => [
+    tool.name,
+    tool,
+  ])
 )
 
 export const getRegisteredTools = () => Array.from(toolsByName.values())
