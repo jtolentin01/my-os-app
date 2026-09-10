@@ -4,13 +4,28 @@ import { getEnabledApps } from "@/platform/config/apps.registry"
 import { getOrCreateMealPlan } from "@/apps/diet/services/meals"
 import { getUpcomingMeals } from "@/apps/diet/utils/upcoming"
 import { formatWeekRange } from "@/apps/diet/utils/week"
+import { MoneyOverviewBars } from "@/apps/money/components/money-overview-bars"
+import {
+  getDebtSummary,
+  getDueSoonDebts,
+} from "@/apps/money/services/debts"
 import { listTransactionsForMonth } from "@/apps/money/services/transactions"
+import type { DebtSummary, MonthSummary } from "@/apps/money/types"
+import { DEFAULT_CURRENCY } from "@/apps/money/types"
 import {
   formatCategoryLabel,
   formatMoney,
   summarizeTransactions,
 } from "@/apps/money/utils/money"
-import { formatMonthLabel, formatMonthKey } from "@/apps/money/utils/month"
+import {
+  formatDirectionLabel,
+  formatScheduleLabel,
+} from "@/apps/money/utils/debt"
+import {
+  formatMonthLabel,
+  formatMonthKey,
+  formatOccurredOn,
+} from "@/apps/money/utils/month"
 import { getRecentNotes } from "@/apps/notes/services/notes"
 import { toPlainNoteText } from "@/apps/notes/utils/content"
 import { Badge } from "@/components/ui/badge"
@@ -25,6 +40,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+
+const emptyMonthSummary = (): MonthSummary => ({
+  income: 0,
+  expense: 0,
+  net: 0,
+  currency: DEFAULT_CURRENCY,
+  count: 0,
+})
+
+const emptyDebtSummary = (): DebtSummary => ({
+  iOwe: 0,
+  owedToMe: 0,
+  openCount: 0,
+  dueSoonCount: 0,
+  currency: DEFAULT_CURRENCY,
+})
 
 const DashboardPage = async () => {
   const supabase = await createClient()
@@ -50,8 +81,11 @@ const DashboardPage = async () => {
   let recentTransactions: Awaited<
     ReturnType<typeof listTransactionsForMonth>
   > = []
+  let dueSoonDebts: Awaited<ReturnType<typeof getDueSoonDebts>> = []
+  let monthSummary = emptyMonthSummary()
+  let debtSummary = emptyDebtSummary()
   let monthLabel = formatMonthLabel(formatMonthKey())
-  let monthNetLabel = ""
+  let moneyLoaded = false
 
   try {
     const plan = await getOrCreateMealPlan()
@@ -69,15 +103,29 @@ const DashboardPage = async () => {
 
   try {
     const monthTransactions = await listTransactionsForMonth()
-    const summary = summarizeTransactions(monthTransactions)
+    monthSummary = summarizeTransactions(monthTransactions)
     recentTransactions = monthTransactions.slice(0, 3)
     monthLabel = formatMonthLabel(formatMonthKey())
-    monthNetLabel = `Net ${formatMoney(summary.net, summary.currency)}`
+    moneyLoaded = true
   } catch {
     recentTransactions = []
   }
 
+  try {
+    debtSummary = await getDebtSummary()
+    moneyLoaded = true
+  } catch {
+    debtSummary = emptyDebtSummary()
+  }
+
+  try {
+    dueSoonDebts = await getDueSoonDebts(3)
+  } catch {
+    dueSoonDebts = []
+  }
+
   const apps = getEnabledApps()
+  const overviewCurrency = monthSummary.currency || debtSummary.currency
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
@@ -176,10 +224,41 @@ const DashboardPage = async () => {
 
         <Card className="md:col-span-2">
           <CardHeader>
+            <CardTitle>Money overview</CardTitle>
+            <CardDescription>
+              {monthLabel}
+              {debtSummary.openCount > 0
+                ? ` · ${debtSummary.openCount} open debt${debtSummary.openCount === 1 ? "" : "s"}`
+                : ""}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {moneyLoaded ? (
+              <MoneyOverviewBars
+                income={monthSummary.income}
+                expense={monthSummary.expense}
+                iOwe={debtSummary.iOwe}
+                owedToMe={debtSummary.owedToMe}
+                currency={overviewCurrency}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Money data is unavailable. Make sure the Money migrations are
+                applied.
+              </p>
+            )}
+            <Link href="/money" className={cn(buttonVariants(), "w-fit")}>
+              Open Money
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Money this month</CardTitle>
             <CardDescription>
-              {monthNetLabel
-                ? `${monthLabel} · ${monthNetLabel}`
+              {monthSummary.count > 0
+                ? `${monthLabel} · Net ${formatMoney(monthSummary.net, monthSummary.currency)}`
                 : monthLabel}
             </CardDescription>
           </CardHeader>
@@ -239,6 +318,69 @@ const DashboardPage = async () => {
             )}
             <Link href="/money" className={cn(buttonVariants(), "w-fit")}>
               Open Money
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Debts due soon</CardTitle>
+            <CardDescription>Upcoming payments and collections</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {dueSoonDebts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No upcoming debt due dates. Add debts in Money.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {dueSoonDebts.map((debt) => (
+                  <div
+                    key={debt.id}
+                    className="rounded-lg border border-border/70 bg-muted/70 px-3 py-2"
+                  >
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          debt.direction === "owed_to_me"
+                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                            : "bg-primary/10 text-primary"
+                        )}
+                      >
+                        {formatDirectionLabel(debt.direction)}
+                      </Badge>
+                      <Badge variant="outline" className="font-normal">
+                        {formatScheduleLabel(debt.schedule)}
+                      </Badge>
+                      {debt.next_due_on ? (
+                        <span className="text-xs text-muted-foreground">
+                          {formatOccurredOn(debt.next_due_on)}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">
+                          {debt.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {debt.counterparty}
+                        </p>
+                      </div>
+                      <p className="shrink-0 text-sm font-semibold tabular-nums">
+                        {formatMoney(debt.remaining_amount, debt.currency)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Link
+              href="/money?tab=debts"
+              className={cn(buttonVariants(), "w-fit")}
+            >
+              Open Debts
             </Link>
           </CardContent>
         </Card>
