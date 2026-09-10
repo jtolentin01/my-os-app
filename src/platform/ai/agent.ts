@@ -32,6 +32,7 @@ const MAX_TOOL_ROUNDS = 8
 
 const buildInstructions = (input: {
   memoryBlock: string
+  lifeProfileBlock: string
   webSearch: boolean
   saveMemory: boolean
   hasImage: boolean
@@ -87,7 +88,12 @@ const buildInstructions = (input: {
     )
   }
 
-  lines.push("Known personal facts for this user only:", input.memoryBlock)
+  lines.push(
+    "Living life foundation for this user (derived from their apps; treat notes themes as careful hypotheses):",
+    input.lifeProfileBlock,
+    "Known personal facts for this user only:",
+    input.memoryBlock
+  )
   return lines.join("\n")
 }
 
@@ -144,6 +150,7 @@ export const runAgentTurn = async (input: {
   userMessage: string
   imageDataUrl?: string | null
   memoryBlock: string
+  lifeProfileBlock?: string
   model?: string | null
   webSearch?: boolean
   saveMemory?: boolean
@@ -174,6 +181,8 @@ export const runAgentTurn = async (input: {
     model,
     instructions: buildInstructions({
       memoryBlock: input.memoryBlock,
+      lifeProfileBlock:
+        input.lifeProfileBlock?.trim() || "No life foundation profile yet.",
       webSearch,
       saveMemory,
       hasImage: Boolean(imageDataUrl),

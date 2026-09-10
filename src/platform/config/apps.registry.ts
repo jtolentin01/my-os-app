@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react"
 import {
   Activity,
+  FileText,
   LayoutDashboard,
   MessageSquare,
   NotebookPen,
@@ -26,6 +27,12 @@ export const platformNav = [
     name: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    id: "reports",
+    name: "Reports",
+    href: "/reports",
+    icon: FileText,
   },
   {
     id: "settings",

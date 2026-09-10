@@ -16,6 +16,10 @@ import {
   listMemories,
 } from "@/platform/memory/services"
 import type { UserMemory } from "@/platform/memory/types"
+import {
+  formatLifeProfileForPrompt,
+  getLifeProfile,
+} from "@/platform/life/services"
 
 const HISTORY_LIMIT = 24
 
@@ -74,6 +78,14 @@ export const sendChatMessage = async (input: {
   }
 
   const memories = await listMemories(80)
+  let lifeProfileBlock = "No life foundation profile yet."
+  try {
+    const lifeProfile = await getLifeProfile()
+    lifeProfileBlock = formatLifeProfileForPrompt(lifeProfile)
+  } catch {
+    lifeProfileBlock = "No life foundation profile yet."
+  }
+
   const memoryExtraction = saveMemory
     ? extractAndSaveMemoriesSafe({
         userMessage: content,
@@ -102,6 +114,7 @@ export const sendChatMessage = async (input: {
         userMessage: content,
         imageDataUrl,
         memoryBlock: formatMemoriesForPrompt(memories),
+        lifeProfileBlock,
         model: modelId,
         webSearch: Boolean(input.webSearch),
         saveMemory,

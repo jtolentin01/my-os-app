@@ -32,7 +32,9 @@ const NavLinks = ({ onNavigate }: { onNavigate?: () => void }) => {
   const isOnline = useOnlineStatus()
   const hasMounted = useHasMounted()
   const apps = getEnabledApps()
-  const primary = platformNav.filter((item) => item.id === "dashboard")
+  const primary = platformNav.filter(
+    (item) => item.id === "dashboard" || item.id === "reports"
+  )
   const secondary = platformNav.filter((item) => item.id === "settings")
   const useOfflineAnchors = hasMounted && !isOnline
 

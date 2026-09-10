@@ -6,6 +6,18 @@ import { AvatarUploader } from "@/platform/profile/avatar-uploader"
 import { MemorySettings } from "@/platform/memory/memory-settings"
 import { listMemories } from "@/platform/memory/services"
 import type { UserMemory } from "@/platform/memory/types"
+import { LifeReportSettings } from "@/platform/life/life-report-settings"
+import {
+  defaultReportPreferences,
+  getLatestReport,
+  getLifeProfile,
+  getReportPreferences,
+} from "@/platform/life/services"
+import type {
+  ReportPreferences,
+  UserLifeProfile,
+  UserReport,
+} from "@/platform/life/types"
 import {
   Card,
   CardContent,
@@ -33,10 +45,26 @@ const SettingsPage = async () => {
     "User"
 
   let memories: UserMemory[] = []
+  let reportPreferences: ReportPreferences = defaultReportPreferences(user!.id)
+  let lifeProfile: UserLifeProfile | null = null
+  let latestReport: UserReport | null = null
+
   try {
     memories = await listMemories()
   } catch {
     memories = []
+  }
+
+  try {
+    ;[reportPreferences, lifeProfile, latestReport] = await Promise.all([
+      getReportPreferences(),
+      getLifeProfile(),
+      getLatestReport(),
+    ])
+  } catch {
+    reportPreferences = defaultReportPreferences(user!.id)
+    lifeProfile = null
+    latestReport = null
   }
 
   return (
@@ -87,6 +115,22 @@ const SettingsPage = async () => {
         </CardHeader>
         <CardContent>
           <MemorySettings memories={memories} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Life reports</CardTitle>
+          <CardDescription>
+            AI foundation and digests across health, diet, money, and notes.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LifeReportSettings
+            preferences={reportPreferences}
+            profile={lifeProfile}
+            latestReport={latestReport}
+          />
         </CardContent>
       </Card>
 

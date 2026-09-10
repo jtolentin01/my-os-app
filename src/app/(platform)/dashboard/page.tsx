@@ -49,6 +49,10 @@ import { cn } from "@/lib/utils"
 import { DashboardGreeting } from "@/platform/components/dashboard-greeting"
 import { UserAvatar } from "@/platform/profile/user-avatar"
 import {
+  getLatestReport,
+  getLifeProfile,
+} from "@/platform/life/services"
+import {
   Card,
   CardContent,
   CardDescription,
@@ -105,6 +109,8 @@ const DashboardPage = async () => {
   let latestHeightCm: number | null = null
   let recentWorkouts: Awaited<ReturnType<typeof getRecentWorkouts>> = []
   let healthLoaded = false
+  let lifeProfile: Awaited<ReturnType<typeof getLifeProfile>> = null
+  let latestLifeReport: Awaited<ReturnType<typeof getLatestReport>> = null
 
   try {
     const plan = await getOrCreateMealPlan()
@@ -157,6 +163,16 @@ const DashboardPage = async () => {
     recentWorkouts = []
   }
 
+  try {
+    ;[lifeProfile, latestLifeReport] = await Promise.all([
+      getLifeProfile(),
+      getLatestReport(),
+    ])
+  } catch {
+    lifeProfile = null
+    latestLifeReport = null
+  }
+
   const apps = getEnabledApps()
   const overviewCurrency = monthSummary.currency || debtSummary.currency
   const latestBmi = computeBmi(latestWeightKg, latestHeightCm)
@@ -174,6 +190,48 @@ const DashboardPage = async () => {
           />
         }
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Life foundation</CardTitle>
+          <CardDescription>
+            {lifeProfile
+              ? `Updated ${new Date(lifeProfile.generated_at).toLocaleDateString()}`
+              : "AI portrait across health, diet, money, and notes"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {lifeProfile ? (
+            <>
+              <p className="text-sm">{lifeProfile.portrait_summary}</p>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="secondary" className="capitalize">
+                  Health · {lifeProfile.health.status.replaceAll("_", " ")}
+                </Badge>
+                <Badge variant="secondary" className="capitalize">
+                  Diet · {lifeProfile.diet.status.replaceAll("_", " ")}
+                </Badge>
+                <Badge variant="secondary" className="capitalize">
+                  Money · {lifeProfile.money.status.replaceAll("_", " ")}
+                </Badge>
+              </div>
+              {latestLifeReport ? (
+                <p className="line-clamp-2 text-xs text-muted-foreground">
+                  Latest report {latestLifeReport.period_start} to{" "}
+                  {latestLifeReport.period_end}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No foundation yet. Generate one from Settings → Life reports.
+            </p>
+          )}
+          <Link href="/reports" className={cn(buttonVariants(), "w-fit")}>
+            Open reports
+          </Link>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
