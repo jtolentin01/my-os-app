@@ -4,6 +4,21 @@ import { getEnabledApps } from "@/platform/config/apps.registry"
 import { getOrCreateMealPlan } from "@/apps/diet/services/meals"
 import { getUpcomingMeals } from "@/apps/diet/utils/upcoming"
 import { formatWeekRange } from "@/apps/diet/utils/week"
+import {
+  getLatestHeightCm,
+  getLatestWeightKg,
+} from "@/apps/health/services/metrics"
+import { getRecentWorkouts } from "@/apps/health/services/workouts"
+import {
+  computeBmi,
+  formatBmi,
+  formatDuration,
+  formatHeight,
+  formatWeight,
+  formatWorkoutStatusLabel,
+  formatWorkoutTypeLabel,
+} from "@/apps/health/utils/health"
+import { formatLoggedOn } from "@/apps/health/utils/date"
 import { MoneyOverviewBars } from "@/apps/money/components/money-overview-bars"
 import {
   getDebtSummary,
@@ -86,6 +101,10 @@ const DashboardPage = async () => {
   let debtSummary = emptyDebtSummary()
   let monthLabel = formatMonthLabel(formatMonthKey())
   let moneyLoaded = false
+  let latestWeightKg: number | null = null
+  let latestHeightCm: number | null = null
+  let recentWorkouts: Awaited<ReturnType<typeof getRecentWorkouts>> = []
+  let healthLoaded = false
 
   try {
     const plan = await getOrCreateMealPlan()
@@ -124,14 +143,29 @@ const DashboardPage = async () => {
     dueSoonDebts = []
   }
 
+  try {
+    const [weight, height, workouts] = await Promise.all([
+      getLatestWeightKg(),
+      getLatestHeightCm(),
+      getRecentWorkouts(3),
+    ])
+    latestWeightKg = weight
+    latestHeightCm = height
+    recentWorkouts = workouts
+    healthLoaded = true
+  } catch {
+    recentWorkouts = []
+  }
+
   const apps = getEnabledApps()
   const overviewCurrency = monthSummary.currency || debtSummary.currency
+  const latestBmi = computeBmi(latestWeightKg, latestHeightCm)
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
       <DashboardGreeting
         displayName={displayName}
-        description="This is your personal operating system. Chat and Call are your AI entrances. Diet, Notes, and Money are available too."
+        description="This is your personal operating system. Chat and Call are your AI entrances. Diet, Notes, Money, and Health are available too."
         avatar={
           <UserAvatar
             avatarUrl={profile?.avatar_url}
@@ -381,6 +415,92 @@ const DashboardPage = async () => {
               className={cn(buttonVariants(), "w-fit")}
             >
               Open Debts
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Health snapshot</CardTitle>
+            <CardDescription>
+              {healthLoaded
+                ? `BMI ${formatBmi(latestBmi)}`
+                : "Body metrics and workouts"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {!healthLoaded ? (
+              <p className="text-sm text-muted-foreground">
+                Health data is unavailable. Make sure the Health migration is
+                applied.
+              </p>
+            ) : latestWeightKg == null &&
+              latestHeightCm == null &&
+              recentWorkouts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No health data yet. Log weight or a workout in Health.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg border border-border/70 bg-muted/70 px-3 py-2">
+                    <p className="text-xs text-muted-foreground">Weight</p>
+                    <p className="text-sm font-semibold tabular-nums">
+                      {formatWeight(latestWeightKg)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border/70 bg-muted/70 px-3 py-2">
+                    <p className="text-xs text-muted-foreground">Height</p>
+                    <p className="text-sm font-semibold tabular-nums">
+                      {formatHeight(latestHeightCm)}
+                    </p>
+                  </div>
+                </div>
+                {recentWorkouts.length > 0 ? (
+                  <div className="flex flex-col gap-2">
+                    {recentWorkouts.map((workout) => (
+                      <div
+                        key={workout.id}
+                        className="rounded-lg border border-border/70 bg-muted/70 px-3 py-2"
+                      >
+                        <div className="mb-1 flex flex-wrap items-center gap-2">
+                          <Badge
+                            variant="secondary"
+                            className="bg-primary/10 text-primary"
+                          >
+                            {formatWorkoutTypeLabel(workout.workout_type)}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "font-normal",
+                              workout.status === "done"
+                                ? "border-emerald-500/40 text-emerald-700 dark:text-emerald-400"
+                                : undefined
+                            )}
+                          >
+                            {formatWorkoutStatusLabel(workout.status)}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {formatLoggedOn(workout.occurred_on)}
+                          </span>
+                        </div>
+                        <div className="flex items-baseline justify-between gap-3">
+                          <p className="truncate text-sm font-medium">
+                            {workout.title}
+                          </p>
+                          <p className="shrink-0 text-sm font-semibold tabular-nums">
+                            {formatDuration(workout.duration_minutes)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            )}
+            <Link href="/health" className={cn(buttonVariants(), "w-fit")}>
+              Open Health
             </Link>
           </CardContent>
         </Card>

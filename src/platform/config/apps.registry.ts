@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react"
 import {
+  Activity,
   LayoutDashboard,
   MessageSquare,
   NotebookPen,
@@ -79,6 +80,15 @@ export const appsRegistry: AppDefinition[] = [
     icon: Wallet,
     enabled: true,
     navOrder: 5,
+  },
+  {
+    id: "health",
+    name: "Health",
+    description: "Track body metrics and workouts",
+    href: "/health",
+    icon: Activity,
+    enabled: true,
+    navOrder: 6,
   },
 ]
 
