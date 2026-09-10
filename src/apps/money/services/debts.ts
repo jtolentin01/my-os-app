@@ -17,6 +17,7 @@ import type {
 import { DEFAULT_CURRENCY } from "@/apps/money/types"
 import {
   advanceDueDate,
+  clearedDueReminderFields,
   isDueSoon,
   nextOpenInstallmentAmount,
   nextOpenInstallmentDue,
@@ -373,6 +374,9 @@ export const updateDebt = async (input: UpdateDebtInput) => {
       notes: input.notes?.trim() ? input.notes.trim() : null,
       status: isCustom && remainingAmount <= 0 ? "paid" : "open",
       updated_at: new Date().toISOString(),
+      ...(nextDueOn !== existing.next_due_on
+        ? clearedDueReminderFields()
+        : {}),
     })
     .eq("id", input.id)
     .eq("user_id", userId)
@@ -597,6 +601,7 @@ export const recordDebtPayment = async (input: RecordDebtPaymentInput) => {
         next_due_on: nextDueOn,
         installment_amount: installmentAmount,
         updated_at: new Date().toISOString(),
+        ...(nextDueOn !== debt.next_due_on ? clearedDueReminderFields() : {}),
       })
       .eq("id", debt.id)
       .eq("user_id", userId)

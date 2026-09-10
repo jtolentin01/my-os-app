@@ -1,6 +1,7 @@
 import {
   addDays,
   addMonths,
+  differenceInCalendarDays,
   format,
   parse,
 } from "date-fns"
@@ -9,6 +10,25 @@ import { formatCalendarDay } from "@/apps/money/utils/month"
 
 const parseCalendarDate = (isoDate: string) =>
   parse(isoDate, "yyyy-MM-dd", new Date())
+
+export const daysUntilDue = (
+  nextDueOn: string,
+  today: string = formatCalendarDay()
+) => {
+  const start = parseCalendarDate(today)
+  const due = parseCalendarDate(nextDueOn)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(due.getTime())) {
+    return null
+  }
+  return differenceInCalendarDays(due, start)
+}
+
+export const clearedDueReminderFields = () => ({
+  due_reminder_7d_for: null,
+  due_reminder_3d_for: null,
+  due_reminder_1d_for: null,
+  due_reminder_due_for: null,
+})
 
 export const advanceDueDate = (
   schedule: DebtSchedule,

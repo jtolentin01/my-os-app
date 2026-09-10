@@ -30,6 +30,7 @@ import {
   formatOccurredOn,
 } from "@/apps/money/utils/month"
 import { useModalHistory } from "@/platform/hooks/use-modal-history"
+import { ensurePushSubscription } from "@/platform/push/ensure-subscription"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -159,6 +160,13 @@ export const DebtEditorDialog = ({
                   )
                 )
               }
+
+              const pushResult = await ensurePushSubscription()
+              if (pushResult.error) {
+                setError(pushResult.error)
+                return
+              }
+
               const result = isEditing
                 ? await updateDebtAction(formData)
                 : await createDebtAction(formData)
