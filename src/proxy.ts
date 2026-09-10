@@ -7,8 +7,9 @@ export const proxy = async (request: NextRequest) => {
   const { supabaseResponse, user } = await updateSession(request)
   const { pathname } = request.nextUrl
   const isPublicRoute = publicRoutes.includes(pathname)
+  const isCronRoute = pathname.startsWith("/api/cron/")
 
-  if (!user && !isPublicRoute) {
+  if (!user && !isPublicRoute && !isCronRoute) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     url.searchParams.set("redirect", pathname)
