@@ -8,6 +8,11 @@ import type { HealthWorkout } from "@/apps/health/types"
 import { formatMonthKey, getMonthBounds } from "@/apps/health/utils/date"
 import { normalizeWorkout } from "@/apps/health/utils/health"
 import { getCurrentUserId } from "@/apps/health/services/metrics"
+import {
+  PAGE_SIZE,
+  buildPageResult,
+  getPageRange,
+} from "@/lib/pagination"
 
 export const listWorkoutsForMonth = async (
   monthKey: string = formatMonthKey()
@@ -31,6 +36,40 @@ export const listWorkoutsForMonth = async (
 
   return (data ?? []).map((row) =>
     normalizeWorkout(row as Record<string, unknown>)
+  )
+}
+
+export const listWorkoutsForMonthPage = async (
+  monthKey: string = formatMonthKey(),
+  page = 1,
+  pageSize = PAGE_SIZE
+) => {
+  const supabase = await createClient()
+  const userId = await getCurrentUserId()
+  const { start, end } = getMonthBounds(monthKey)
+  const { from, to, page: safePage } = getPageRange(page, pageSize)
+
+  const { data, error, count } = await supabase
+    .from("health_workouts")
+    .select("*", { count: "exact" })
+    .eq("user_id", userId)
+    .gte("occurred_on", start)
+    .lte("occurred_on", end)
+    .order("occurred_on", { ascending: false })
+    .order("created_at", { ascending: false })
+    .range(from, to)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return buildPageResult(
+    (data ?? []).map((row) =>
+      normalizeWorkout(row as Record<string, unknown>)
+    ),
+    count ?? 0,
+    safePage,
+    pageSize
   )
 }
 

@@ -2,8 +2,12 @@ import { HealthWorkspace } from "@/apps/health/components/health-workspace"
 import {
   getLatestHeightCm,
   listMetricsForMonth,
+  listMetricsForMonthPage,
 } from "@/apps/health/services/metrics"
-import { listWorkoutsForMonth } from "@/apps/health/services/workouts"
+import {
+  listWorkoutsForMonth,
+  listWorkoutsForMonthPage,
+} from "@/apps/health/services/workouts"
 import type {
   BodyMetric,
   HealthWorkout,
@@ -18,9 +22,11 @@ import {
   summarizeMetrics,
   summarizeWorkouts,
 } from "@/apps/health/utils/health"
+import { parsePageParam } from "@/lib/pagination"
+import { redirect } from "next/navigation"
 
 type HealthPageProps = {
-  searchParams: Promise<{ month?: string; tab?: string }>
+  searchParams: Promise<{ month?: string; tab?: string; page?: string }>
 }
 
 const emptyMetricsSummary = (): MetricsSummary => ({
@@ -45,40 +51,88 @@ const HealthPage = async ({ searchParams }: HealthPageProps) => {
   const monthKey = isValidMonthParam(params.month)
     ? params.month!
     : formatMonthKey()
+  const page = parsePageParam(params.page)
 
   let metrics: BodyMetric[] = []
+  let metricsPage = 1
+  let metricsTotalPages = 1
   let metricsSummary = emptyMetricsSummary()
   let workouts: HealthWorkout[] = []
+  let workoutsPage = 1
+  let workoutsTotalPages = 1
   let workoutsSummary = emptyWorkoutsSummary()
   let loadError = ""
   let workoutsError = ""
 
-  const [metricsResult, workoutsResult] = await Promise.allSettled([
-    Promise.all([listMetricsForMonth(monthKey), getLatestHeightCm()]),
-    listWorkoutsForMonth(monthKey),
-  ])
+  if (tab === "workouts") {
+    const [summaryResult, pageResult] = await Promise.allSettled([
+      listWorkoutsForMonth(monthKey),
+      listWorkoutsForMonthPage(monthKey, page),
+    ])
 
-  if (metricsResult.status === "fulfilled") {
-    const [monthMetrics, latestHeightCm] = metricsResult.value
-    metrics = monthMetrics
-    metricsSummary = summarizeMetrics(monthMetrics, latestHeightCm)
-  } else {
-    const error = metricsResult.reason
-    loadError =
-      error instanceof Error
-        ? error.message
-        : "Unable to load your health metrics. Make sure the database migration has been applied."
-  }
+    if (summaryResult.status === "fulfilled") {
+      workoutsSummary = summarizeWorkouts(summaryResult.value)
+    }
 
-  if (workoutsResult.status === "fulfilled") {
-    workouts = workoutsResult.value
-    workoutsSummary = summarizeWorkouts(workouts)
+    if (pageResult.status === "fulfilled") {
+      workouts = pageResult.value.items
+      workoutsPage = pageResult.value.page
+      workoutsTotalPages = pageResult.value.totalPages
+      if (page > pageResult.value.totalPages && pageResult.value.total > 0) {
+        redirect(
+          `/health?tab=workouts&month=${monthKey}&page=${pageResult.value.totalPages}`
+        )
+      }
+    } else {
+      const error = pageResult.reason
+      workoutsError =
+        error instanceof Error
+          ? error.message
+          : "Unable to load workouts. Make sure the health migration has been applied."
+    }
+
+    if (summaryResult.status === "rejected" && !workoutsError) {
+      const error = summaryResult.reason
+      workoutsError =
+        error instanceof Error
+          ? error.message
+          : "Unable to load workouts. Make sure the health migration has been applied."
+    }
   } else {
-    const error = workoutsResult.reason
-    workoutsError =
-      error instanceof Error
-        ? error.message
-        : "Unable to load workouts. Make sure the health migration has been applied."
+    const [summaryResult, pageResult] = await Promise.allSettled([
+      Promise.all([listMetricsForMonth(monthKey), getLatestHeightCm()]),
+      listMetricsForMonthPage(monthKey, page),
+    ])
+
+    if (summaryResult.status === "fulfilled") {
+      const [monthMetrics, latestHeightCm] = summaryResult.value
+      metricsSummary = summarizeMetrics(monthMetrics, latestHeightCm)
+    }
+
+    if (pageResult.status === "fulfilled") {
+      metrics = pageResult.value.items
+      metricsPage = pageResult.value.page
+      metricsTotalPages = pageResult.value.totalPages
+      if (page > pageResult.value.totalPages && pageResult.value.total > 0) {
+        redirect(
+          `/health?tab=metrics&month=${monthKey}&page=${pageResult.value.totalPages}`
+        )
+      }
+    } else {
+      const error = pageResult.reason
+      loadError =
+        error instanceof Error
+          ? error.message
+          : "Unable to load your health metrics. Make sure the database migration has been applied."
+    }
+
+    if (summaryResult.status === "rejected" && !loadError) {
+      const error = summaryResult.reason
+      loadError =
+        error instanceof Error
+          ? error.message
+          : "Unable to load your health metrics. Make sure the database migration has been applied."
+    }
   }
 
   return (
@@ -86,8 +140,12 @@ const HealthPage = async ({ searchParams }: HealthPageProps) => {
       tab={tab}
       monthKey={monthKey}
       metrics={metrics}
+      metricsPage={metricsPage}
+      metricsTotalPages={metricsTotalPages}
       metricsSummary={metricsSummary}
       workouts={workouts}
+      workoutsPage={workoutsPage}
+      workoutsTotalPages={workoutsTotalPages}
       workoutsSummary={workoutsSummary}
       loadError={loadError || undefined}
       workoutsError={workoutsError || undefined}

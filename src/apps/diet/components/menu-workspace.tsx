@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { PaginationControls } from "@/platform/components/pagination-controls"
 import {
   Dialog,
   DialogContent,
@@ -594,9 +595,17 @@ const SuggestDishesDialog = () => {
 
 type MenuWorkspaceProps = {
   items: MenuItem[]
+  page?: number
+  totalPages?: number
+  weekStart?: string
 }
 
-export const MenuWorkspace = ({ items }: MenuWorkspaceProps) => {
+export const MenuWorkspace = ({
+  items,
+  page = 1,
+  totalPages = 1,
+  weekStart,
+}: MenuWorkspaceProps) => {
   const [detailItem, setDetailItem] = useState<MenuItem | null>(null)
   const menuKey = items.map((item) => item.id).join("|")
 
@@ -629,80 +638,92 @@ export const MenuWorkspace = ({ items }: MenuWorkspaceProps) => {
           </CardHeader>
         </Card>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {items.map((item) => (
-            <Card
-              key={item.id}
-              size="sm"
-              role="button"
-              tabIndex={0}
-              className="cursor-pointer transition-colors hover:bg-muted/40"
-              onClick={() => setDetailItem(item)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault()
-                  setDetailItem(item)
-                }
-              }}
-            >
-              <CardHeader>
-                <CardTitle className="flex items-start justify-between gap-2">
-                  <span className="min-w-0 truncate">{item.name}</span>
-                  <div
-                    className="flex shrink-0 items-center gap-1"
-                    onClick={(event) => event.stopPropagation()}
-                    onKeyDown={(event) => event.stopPropagation()}
-                  >
-                    <MenuItemDialog item={item} />
-                    <form
-                      action={async (formData) => {
-                        await deleteMenuItemAction(formData)
-                      }}
+        <>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {items.map((item) => (
+              <Card
+                key={item.id}
+                size="sm"
+                role="button"
+                tabIndex={0}
+                className="cursor-pointer transition-colors hover:bg-muted/40"
+                onClick={() => setDetailItem(item)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault()
+                    setDetailItem(item)
+                  }
+                }}
+              >
+                <CardHeader>
+                  <CardTitle className="flex items-start justify-between gap-2">
+                    <span className="min-w-0 truncate">{item.name}</span>
+                    <div
+                      className="flex shrink-0 items-center gap-1"
+                      onClick={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => event.stopPropagation()}
                     >
-                      <input type="hidden" name="id" value={item.id} />
-                      <Button
-                        type="submit"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label="Delete dish"
+                      <MenuItemDialog item={item} />
+                      <form
+                        action={async (formData) => {
+                          await deleteMenuItemAction(formData)
+                        }}
                       >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </form>
-                  </div>
-                </CardTitle>
-                <CardDescription className="flex flex-wrap items-center gap-2">
-                  {item.category ? (
-                    <Badge variant="secondary" className="capitalize">
-                      {item.category}
-                    </Badge>
+                        <input type="hidden" name="id" value={item.id} />
+                        <Button
+                          type="submit"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Delete dish"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </form>
+                    </div>
+                  </CardTitle>
+                  <CardDescription className="flex flex-wrap items-center gap-2">
+                    {item.category ? (
+                      <Badge variant="secondary" className="capitalize">
+                        {item.category}
+                      </Badge>
+                    ) : null}
+                    <span>{item.serving_label}</span>
+                    {hasRecipeContent(item) ? (
+                      <Badge variant="outline" className="font-normal">
+                        Recipe
+                      </Badge>
+                    ) : null}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-2">
+                  <NutritionFactsLine
+                    facts={{
+                      calories: item.calories,
+                      carbs_g: item.carbs_g,
+                      protein_g: item.protein_g,
+                      fat_g: item.fat_g,
+                    }}
+                  />
+                  {item.notes ? (
+                    <p className="line-clamp-2 text-xs text-muted-foreground">
+                      {item.notes}
+                    </p>
                   ) : null}
-                  <span>{item.serving_label}</span>
-                  {hasRecipeContent(item) ? (
-                    <Badge variant="outline" className="font-normal">
-                      Recipe
-                    </Badge>
-                  ) : null}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                <NutritionFactsLine
-                  facts={{
-                    calories: item.calories,
-                    carbs_g: item.carbs_g,
-                    protein_g: item.protein_g,
-                    fat_g: item.fat_g,
-                  }}
-                />
-                {item.notes ? (
-                  <p className="line-clamp-2 text-xs text-muted-foreground">
-                    {item.notes}
-                  </p>
-                ) : null}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <PaginationControls
+            page={page}
+            totalPages={totalPages}
+            hrefForPage={(nextPage) => {
+              const qs = new URLSearchParams({ tab: "menu" })
+              if (weekStart) qs.set("week", weekStart)
+              if (nextPage > 1) qs.set("page", String(nextPage))
+              return `/diet?${qs.toString()}`
+            }}
+          />
+        </>
       )}
 
       <MenuItemDetailDialog

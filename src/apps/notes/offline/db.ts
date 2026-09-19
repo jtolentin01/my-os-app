@@ -105,7 +105,12 @@ export const removePendingChange = async (noteId: string) => {
 
 export const mergeServerNotesIntoCache = async (serverNotes: Note[]) => {
   const pending = await getPendingChanges()
-  const byId = new Map(serverNotes.map((note) => [note.id, note]))
+  const existing = await getCachedNotes()
+  const byId = new Map(existing.map((note) => [note.id, note]))
+
+  for (const note of serverNotes) {
+    byId.set(note.id, note)
+  }
 
   for (const change of pending) {
     if (change.action === "delete") {

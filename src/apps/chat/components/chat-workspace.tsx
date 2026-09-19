@@ -6,6 +6,7 @@ import {
   createChatThreadAction,
   deleteChatThreadAction,
   listChatMessagesAction,
+  listChatThreadsPageAction,
   sendChatMessageAction,
 } from "@/apps/chat/services/actions"
 import { ChatMarkdown } from "@/apps/chat/components/chat-markdown"
@@ -46,6 +47,8 @@ type WorkspaceMessage = ChatMessage & {
 
 type ChatWorkspaceProps = {
   threads: ChatThread[]
+  threadsPage?: number
+  threadsTotalPages?: number
   initialThreadId?: string | null
   initialMessages: ChatMessage[]
   models: AiModelOption[]
@@ -88,6 +91,8 @@ const subscribeNoop = () => () => {}
 
 export const ChatWorkspace = ({
   threads: initialThreads,
+  threadsPage = 1,
+  threadsTotalPages = 1,
   initialThreadId = null,
   initialMessages,
   models,
@@ -99,6 +104,10 @@ export const ChatWorkspace = ({
   const requestIdRef = useRef(0)
 
   const [threads, setThreads] = useState(initialThreads)
+  const [threadsPageState, setThreadsPageState] = useState(threadsPage)
+  const [threadsTotalPagesState, setThreadsTotalPagesState] =
+    useState(threadsTotalPages)
+  const [loadingMoreThreads, setLoadingMoreThreads] = useState(false)
   const [activeThreadId, setActiveThreadId] = useState<string | null>(
     initialThreadId
   )
@@ -198,6 +207,27 @@ export const ChatWorkspace = ({
       const without = current.filter((item) => item.id !== thread.id)
       return [thread, ...without]
     })
+  }
+
+  const handleLoadMoreThreads = async () => {
+    if (loadingMoreThreads || threadsPageState >= threadsTotalPagesState) {
+      return
+    }
+    setLoadingMoreThreads(true)
+    const nextPage = threadsPageState + 1
+    const result = await listChatThreadsPageAction(nextPage)
+    setLoadingMoreThreads(false)
+    if (!result.success) {
+      setError(result.error)
+      return
+    }
+    setThreads((current) => {
+      const seen = new Set(current.map((thread) => thread.id))
+      const appended = result.items.filter((thread) => !seen.has(thread.id))
+      return [...current, ...appended]
+    })
+    setThreadsPageState(result.page)
+    setThreadsTotalPagesState(result.totalPages)
   }
 
   const selectThread = async (threadId: string) => {
@@ -453,6 +483,18 @@ export const ChatWorkspace = ({
                 </Button>
               </div>
             ))}
+            {threadsPageState < threadsTotalPagesState ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="mt-1 w-full"
+                disabled={loadingMoreThreads}
+                onClick={() => void handleLoadMoreThreads()}
+              >
+                {loadingMoreThreads ? "Loading…" : "Load more"}
+              </Button>
+            ) : null}
           </div>
         )}
       </div>

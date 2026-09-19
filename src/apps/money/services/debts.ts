@@ -30,6 +30,12 @@ import {
   summarizeDebts,
   toAmountNumber,
 } from "@/apps/money/utils/money"
+import {
+  PAGE_SIZE,
+  buildPageResult,
+  getPageRange,
+  type PageResult,
+} from "@/lib/pagination"
 
 export const listDebtInstallments = async (
   debtId: string
@@ -128,6 +134,55 @@ export const listDebts = async (input?: {
   }
 
   return attachInstallments(debts)
+}
+
+export const listDebtsPage = async (input?: {
+  status?: "open" | "paid" | "all"
+  page?: number
+  pageSize?: number
+  withInstallments?: boolean
+}): Promise<PageResult<MoneyDebt>> => {
+  const supabase = await createClient()
+  const userId = await getCurrentUserId()
+  const status = input?.status ?? "open"
+  const pageSize = input?.pageSize ?? PAGE_SIZE
+  const { from, to, page } = getPageRange(input?.page ?? 1, pageSize)
+
+  let request = supabase
+    .from("money_debts")
+    .select("*", { count: "exact" })
+    .eq("user_id", userId)
+
+  if (status === "paid") {
+    request = request
+      .eq("status", "paid")
+      .order("updated_at", { ascending: false })
+  } else if (status === "open") {
+    request = request
+      .eq("status", "open")
+      .order("next_due_on", { ascending: true })
+      .order("updated_at", { ascending: false })
+  } else {
+    request = request
+      .order("status", { ascending: true })
+      .order("updated_at", { ascending: false })
+  }
+
+  const { data, error, count } = await request.range(from, to)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  let debts = (data ?? []).map((row) =>
+    normalizeDebt(row as Record<string, unknown>)
+  )
+
+  if (input?.withInstallments !== false) {
+    debts = await attachInstallments(debts)
+  }
+
+  return buildPageResult(debts, count ?? 0, page, pageSize)
 }
 
 export const getDebtSummary = async () => {

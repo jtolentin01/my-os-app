@@ -12,16 +12,25 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { PaginationControls } from "@/platform/components/pagination-controls"
 import { cn } from "@/lib/utils"
 
 type DebtsWorkspaceProps = {
-  debts: MoneyDebt[]
+  openDebts: MoneyDebt[]
+  paidDebts: MoneyDebt[]
+  paidPage: number
+  paidTotalPages: number
+  monthKey: string
   summary: DebtSummary
   loadError?: string
 }
 
 export const DebtsWorkspace = ({
-  debts,
+  openDebts,
+  paidDebts,
+  paidPage,
+  paidTotalPages,
+  monthKey,
   summary,
   loadError,
 }: DebtsWorkspaceProps) => {
@@ -36,27 +45,24 @@ export const DebtsWorkspace = ({
         </CardHeader>
         <div className="px-4 pb-4">
           <p className="text-sm text-muted-foreground">{loadError}</p>
-            <p className="mt-3 text-sm text-muted-foreground">
-              Run the SQL in{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                supabase/migrations/202609100002_money_debts.sql
-              </code>{" "}
-              and{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                supabase/migrations/202609100003_money_debt_installments.sql
-              </code>{" "}
-              in your Supabase SQL editor, then refresh this page.
-            </p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Run the SQL in{" "}
+            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+              supabase/migrations/202609100002_money_debts.sql
+            </code>{" "}
+            and{" "}
+            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+              supabase/migrations/202609100003_money_debt_installments.sql
+            </code>{" "}
+            in your Supabase SQL editor, then refresh this page.
+          </p>
         </div>
       </Card>
     )
   }
 
-  const openDebts = debts.filter((debt) => debt.status === "open")
-  const paidDebts = debts.filter((debt) => debt.status === "paid")
-
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="grid w-full gap-3 sm:grid-cols-3 sm:flex-1">
           <Card size="sm">
@@ -99,19 +105,31 @@ export const DebtsWorkspace = ({
           </p>
         </div>
       ) : (
-        <div className="grid gap-3">
+        <div className="grid min-w-0 gap-3">
           {openDebts.map((debt) => (
             <DebtCard key={debt.id} debt={debt} />
           ))}
         </div>
       )}
 
-      {paidDebts.length > 0 ? (
-        <div className="grid gap-3">
+      {paidDebts.length > 0 || paidTotalPages > 1 ? (
+        <div className="grid min-w-0 gap-3">
           <p className="text-sm font-medium text-muted-foreground">Paid</p>
           {paidDebts.map((debt) => (
             <DebtCard key={debt.id} debt={debt} />
           ))}
+          <PaginationControls
+            page={paidPage}
+            totalPages={paidTotalPages}
+            hrefForPage={(nextPage) => {
+              const qs = new URLSearchParams({
+                tab: "debts",
+                month: monthKey,
+              })
+              if (nextPage > 1) qs.set("page", String(nextPage))
+              return `/money?${qs.toString()}`
+            }}
+          />
         </div>
       ) : null}
     </div>

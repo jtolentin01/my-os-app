@@ -8,9 +8,14 @@ import type { MoneyTransaction, MonthSummary } from "@/apps/money/types"
 import { DEFAULT_CURRENCY } from "@/apps/money/types"
 import {
   normalizeTransaction,
-  summarizeTransactions,
+  toAmountNumber,
 } from "@/apps/money/utils/money"
 import { formatMonthKey, getMonthBounds } from "@/apps/money/utils/month"
+import {
+  PAGE_SIZE,
+  buildPageResult,
+  getPageRange,
+} from "@/lib/pagination"
 
 export { getCurrentUserId }
 
@@ -39,11 +44,82 @@ export const listTransactionsForMonth = async (
   )
 }
 
+export const listTransactionsForMonthPage = async (
+  monthKey: string = formatMonthKey(),
+  page = 1,
+  pageSize = PAGE_SIZE
+) => {
+  const supabase = await createClient()
+  const userId = await getCurrentUserId()
+  const { start, end } = getMonthBounds(monthKey)
+  const { from, to, page: safePage } = getPageRange(page, pageSize)
+
+  const { data, error, count } = await supabase
+    .from("money_transactions")
+    .select("*", { count: "exact" })
+    .eq("user_id", userId)
+    .gte("occurred_on", start)
+    .lte("occurred_on", end)
+    .order("occurred_on", { ascending: false })
+    .order("created_at", { ascending: false })
+    .range(from, to)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return buildPageResult(
+    (data ?? []).map((row) =>
+      normalizeTransaction(row as Record<string, unknown>)
+    ),
+    count ?? 0,
+    safePage,
+    pageSize
+  )
+}
+
 export const getMonthSummary = async (
   monthKey: string = formatMonthKey()
 ): Promise<MonthSummary> => {
-  const transactions = await listTransactionsForMonth(monthKey)
-  return summarizeTransactions(transactions, DEFAULT_CURRENCY)
+  const supabase = await createClient()
+  const userId = await getCurrentUserId()
+  const { start, end } = getMonthBounds(monthKey)
+
+  const { data, error } = await supabase
+    .from("money_transactions")
+    .select("type, amount, currency")
+    .eq("user_id", userId)
+    .gte("occurred_on", start)
+    .lte("occurred_on", end)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  let income = 0
+  let expense = 0
+  let currency = DEFAULT_CURRENCY
+
+  for (const row of data ?? []) {
+    const amount = toAmountNumber(row.amount)
+    currency = String(row.currency ?? DEFAULT_CURRENCY)
+    if (row.type === "income") {
+      income += amount
+    } else {
+      expense += amount
+    }
+  }
+
+  income = Math.round(income * 100) / 100
+  expense = Math.round(expense * 100) / 100
+
+  return {
+    income,
+    expense,
+    net: Math.round((income - expense) * 100) / 100,
+    currency,
+    count: data?.length ?? 0,
+  }
 }
 
 export const getRecentTransactions = async (

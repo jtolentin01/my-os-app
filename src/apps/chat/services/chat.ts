@@ -1,6 +1,12 @@
 import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserId } from "@/lib/supabase/auth"
 import type { ChatMessage, ChatThread } from "@/apps/chat/types"
+import {
+  PAGE_SIZE,
+  buildPageResult,
+  getPageRange,
+  type PageResult,
+} from "@/lib/pagination"
 
 export const listThreads = async (): Promise<ChatThread[]> => {
   const supabase = await createClient()
@@ -17,6 +23,34 @@ export const listThreads = async (): Promise<ChatThread[]> => {
   }
 
   return (data ?? []) as ChatThread[]
+}
+
+export const listThreadsPage = async (input?: {
+  page?: number
+  pageSize?: number
+}): Promise<PageResult<ChatThread>> => {
+  const supabase = await createClient()
+  const userId = await getCurrentUserId()
+  const pageSize = input?.pageSize ?? PAGE_SIZE
+  const { from, to, page } = getPageRange(input?.page ?? 1, pageSize)
+
+  const { data, error, count } = await supabase
+    .from("chat_threads")
+    .select("*", { count: "exact" })
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+    .range(from, to)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return buildPageResult(
+    (data ?? []) as ChatThread[],
+    count ?? 0,
+    page,
+    pageSize
+  )
 }
 
 export const getThread = async (threadId: string): Promise<ChatThread | null> => {

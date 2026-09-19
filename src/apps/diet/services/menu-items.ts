@@ -2,6 +2,12 @@ import { createClient } from "@/lib/supabase/server"
 import { getCurrentUserId } from "@/apps/diet/services/meals"
 import type { MenuItem } from "@/apps/diet/types"
 import { roundNutrition } from "@/apps/diet/utils/nutrition"
+import {
+  PAGE_SIZE,
+  buildPageResult,
+  getPageRange,
+  type PageResult,
+} from "@/lib/pagination"
 
 export const mapMenuItem = (row: Record<string, unknown>): MenuItem => ({
   id: String(row.id),
@@ -28,7 +34,7 @@ export const listMenuItems = async (query?: string) => {
     .from("menu_items")
     .select("*")
     .eq("user_id", userId)
-    .order("name", { ascending: true })
+    .order("updated_at", { ascending: false })
 
   const trimmed = query?.trim()
   if (trimmed) {
@@ -42,6 +48,41 @@ export const listMenuItems = async (query?: string) => {
   }
 
   return (data ?? []).map((row) => mapMenuItem(row as Record<string, unknown>))
+}
+
+export const listMenuItemsPage = async (input?: {
+  query?: string
+  page?: number
+  pageSize?: number
+}): Promise<PageResult<MenuItem>> => {
+  const supabase = await createClient()
+  const userId = await getCurrentUserId()
+  const pageSize = input?.pageSize ?? PAGE_SIZE
+  const { from, to, page } = getPageRange(input?.page ?? 1, pageSize)
+
+  let request = supabase
+    .from("menu_items")
+    .select("*", { count: "exact" })
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false })
+
+  const trimmed = input?.query?.trim()
+  if (trimmed) {
+    request = request.ilike("name", `%${trimmed}%`)
+  }
+
+  const { data, error, count } = await request.range(from, to)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return buildPageResult(
+    (data ?? []).map((row) => mapMenuItem(row as Record<string, unknown>)),
+    count ?? 0,
+    page,
+    pageSize
+  )
 }
 
 export const getMenuItem = async (id: string) => {

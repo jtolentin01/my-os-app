@@ -25,14 +25,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { PaginationControls } from "@/platform/components/pagination-controls"
 import { cn } from "@/lib/utils"
 
 type MoneyWorkspaceProps = {
   tab: "month" | "debts"
   monthKey: string
   transactions: MoneyTransaction[]
+  transactionsPage: number
+  transactionsTotalPages: number
   summary: MonthSummary
-  debts: MoneyDebt[]
+  openDebts: MoneyDebt[]
+  paidDebts: MoneyDebt[]
+  paidPage: number
+  paidTotalPages: number
   debtSummary: DebtSummary
   loadError?: string
   debtsError?: string
@@ -42,8 +48,13 @@ export const MoneyWorkspace = ({
   tab,
   monthKey,
   transactions,
+  transactionsPage,
+  transactionsTotalPages,
   summary,
-  debts,
+  openDebts,
+  paidDebts,
+  paidPage,
+  paidTotalPages,
   debtSummary,
   loadError,
   debtsError,
@@ -54,7 +65,7 @@ export const MoneyWorkspace = ({
   const debtsHref = `/money?tab=debts&month=${monthKey}`
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+    <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Money</h1>
@@ -90,7 +101,11 @@ export const MoneyWorkspace = ({
 
       {tab === "debts" ? (
         <DebtsWorkspace
-          debts={debts}
+          openDebts={openDebts}
+          paidDebts={paidDebts}
+          paidPage={paidPage}
+          paidTotalPages={paidTotalPages}
+          monthKey={monthKey}
           summary={debtSummary}
           loadError={debtsError}
         />
@@ -177,14 +192,28 @@ export const MoneyWorkspace = ({
               </p>
             </div>
           ) : (
-            <div className="grid gap-3">
-              {transactions.map((transaction) => (
-                <TransactionCard
-                  key={transaction.id}
-                  transaction={transaction}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid min-w-0 gap-3">
+                {transactions.map((transaction) => (
+                  <TransactionCard
+                    key={transaction.id}
+                    transaction={transaction}
+                  />
+                ))}
+              </div>
+              <PaginationControls
+                page={transactionsPage}
+                totalPages={transactionsTotalPages}
+                hrefForPage={(nextPage) => {
+                  const qs = new URLSearchParams({
+                    tab: "month",
+                    month: monthKey,
+                  })
+                  if (nextPage > 1) qs.set("page", String(nextPage))
+                  return `/money?${qs.toString()}`
+                }}
+              />
+            </>
           )}
         </>
       )}

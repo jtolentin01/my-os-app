@@ -1,7 +1,10 @@
 import Link from "next/link"
 import { MenuWorkspace } from "@/apps/diet/components/menu-workspace"
 import { WeeklyPlanner } from "@/apps/diet/components/weekly-planner"
-import { listMenuItems } from "@/apps/diet/services/menu-items"
+import {
+  listMenuItems,
+  listMenuItemsPage,
+} from "@/apps/diet/services/menu-items"
 import { getOrCreateMealPlan } from "@/apps/diet/services/meals"
 import { formatWeekStart, getWeekStart } from "@/apps/diet/utils/week"
 import { parseISO } from "date-fns"
@@ -14,9 +17,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { parsePageParam } from "@/lib/pagination"
+import { redirect } from "next/navigation"
 
 type DietPageProps = {
-  searchParams: Promise<{ week?: string; tab?: string }>
+  searchParams: Promise<{ week?: string; tab?: string; page?: string }>
 }
 
 const isValidWeekParam = (value?: string) => {
@@ -32,16 +37,35 @@ const DietPage = async ({ searchParams }: DietPageProps) => {
   const weekStart = isValidWeekParam(params.week)
     ? formatWeekStart(getWeekStart(parseISO(params.week!)))
     : formatWeekStart(getWeekStart())
+  const page = parsePageParam(params.page)
 
   let plan
   let menuItems = [] as Awaited<ReturnType<typeof listMenuItems>>
+  let menuPage = 1
+  let menuTotalPages = 1
   let errorMessage = ""
 
   try {
-    ;[plan, menuItems] = await Promise.all([
-      getOrCreateMealPlan(weekStart),
-      listMenuItems(),
-    ])
+    if (tab === "menu") {
+      const [planResult, menuResult] = await Promise.all([
+        getOrCreateMealPlan(weekStart),
+        listMenuItemsPage({ page }),
+      ])
+      plan = planResult
+      menuItems = menuResult.items
+      menuPage = menuResult.page
+      menuTotalPages = menuResult.totalPages
+      if (page > menuResult.totalPages && menuResult.total > 0) {
+        redirect(
+          `/diet?tab=menu&week=${weekStart}&page=${menuResult.totalPages}`
+        )
+      }
+    } else {
+      ;[plan, menuItems] = await Promise.all([
+        getOrCreateMealPlan(weekStart),
+        listMenuItems(),
+      ])
+    }
   } catch (error) {
     errorMessage =
       error instanceof Error
@@ -111,7 +135,12 @@ const DietPage = async ({ searchParams }: DietPageProps) => {
       </div>
 
       {tab === "menu" ? (
-        <MenuWorkspace items={menuItems} />
+        <MenuWorkspace
+          items={menuItems}
+          page={menuPage}
+          totalPages={menuTotalPages}
+          weekStart={weekStart}
+        />
       ) : (
         <WeeklyPlanner plan={plan} menuItems={menuItems} />
       )}

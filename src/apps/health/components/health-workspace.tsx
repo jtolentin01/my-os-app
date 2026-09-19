@@ -34,14 +34,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { PaginationControls } from "@/platform/components/pagination-controls"
 import { cn } from "@/lib/utils"
 
 type HealthWorkspaceProps = {
   tab: "metrics" | "workouts"
   monthKey: string
   metrics: BodyMetric[]
+  metricsPage: number
+  metricsTotalPages: number
   metricsSummary: MetricsSummary
   workouts: HealthWorkout[]
+  workoutsPage: number
+  workoutsTotalPages: number
   workoutsSummary: WorkoutsSummary
   loadError?: string
   workoutsError?: string
@@ -51,8 +56,12 @@ export const HealthWorkspace = ({
   tab,
   monthKey,
   metrics,
+  metricsPage,
+  metricsTotalPages,
   metricsSummary,
   workouts,
+  workoutsPage,
+  workoutsTotalPages,
   workoutsSummary,
   loadError,
   workoutsError,
@@ -65,7 +74,7 @@ export const HealthWorkspace = ({
   const bmiCategoryLabel = formatBmiCategoryLabel(bmiCategory)
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+    <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Health</h1>
@@ -185,11 +194,25 @@ export const HealthWorkspace = ({
                 </p>
               </div>
             ) : (
-              <div className="grid gap-3">
-                {workouts.map((workout) => (
-                  <WorkoutCard key={workout.id} workout={workout} />
-                ))}
-              </div>
+              <>
+                <div className="grid min-w-0 gap-3">
+                  {workouts.map((workout) => (
+                    <WorkoutCard key={workout.id} workout={workout} />
+                  ))}
+                </div>
+                <PaginationControls
+                  page={workoutsPage}
+                  totalPages={workoutsTotalPages}
+                  hrefForPage={(nextPage) => {
+                    const qs = new URLSearchParams({
+                      tab: "workouts",
+                      month: monthKey,
+                    })
+                    if (nextPage > 1) qs.set("page", String(nextPage))
+                    return `/health?${qs.toString()}`
+                  }}
+                />
+              </>
             )}
           </>
         )
@@ -322,11 +345,25 @@ export const HealthWorkspace = ({
               </p>
             </div>
           ) : (
-            <div className="grid gap-3">
-              {metrics.map((metric) => (
-                <MetricCard key={metric.id} metric={metric} />
-              ))}
-            </div>
+            <>
+              <div className="grid min-w-0 gap-3">
+                {metrics.map((metric) => (
+                  <MetricCard key={metric.id} metric={metric} />
+                ))}
+              </div>
+              <PaginationControls
+                page={metricsPage}
+                totalPages={metricsTotalPages}
+                hrefForPage={(nextPage) => {
+                  const qs = new URLSearchParams({
+                    tab: "metrics",
+                    month: monthKey,
+                  })
+                  if (nextPage > 1) qs.set("page", String(nextPage))
+                  return `/health?${qs.toString()}`
+                }}
+              />
+            </>
           )}
         </>
       )}

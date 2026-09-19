@@ -577,9 +577,9 @@ export const DebtCard = ({ debt }: DebtCardProps) => {
     .slice(0, 3)
 
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border/70 bg-muted/70 px-3 py-2.5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+    <div className="flex min-w-0 w-full flex-col gap-2 overflow-hidden rounded-lg border border-border/70 bg-muted/70 px-3 py-2.5">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             <Badge
               variant="secondary"
@@ -611,20 +611,20 @@ export const DebtCard = ({ debt }: DebtCardProps) => {
             ) : null}
           </div>
           <p className="truncate text-sm font-medium">{debt.title}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">
             {debt.counterparty}
             {debt.next_due_on
               ? ` · next due ${formatOccurredOn(debt.next_due_on)}`
               : ""}
           </p>
-          <p className="mt-1 text-sm font-semibold tabular-nums">
+          <p className="mt-1 truncate text-sm font-semibold tabular-nums">
             {formatMoney(debt.remaining_amount, debt.currency)}
             <span className="ml-1 text-xs font-normal text-muted-foreground">
               of {formatMoney(debt.original_amount, debt.currency)}
             </span>
           </p>
           {debt.status === "open" && debt.schedule !== "custom" ? (
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
               Installment {formatMoney(debt.installment_amount, debt.currency)}
             </p>
           ) : null}
@@ -633,7 +633,7 @@ export const DebtCard = ({ debt }: DebtCardProps) => {
               {upcomingInstallments.map((item) => (
                 <p
                   key={item.id}
-                  className="text-xs text-muted-foreground tabular-nums"
+                  className="truncate text-xs text-muted-foreground tabular-nums"
                 >
                   {formatOccurredOn(item.due_on)} ·{" "}
                   {formatMoney(

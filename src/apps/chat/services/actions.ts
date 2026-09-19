@@ -7,6 +7,7 @@ import {
   deleteThread,
   listMessages,
   listThreads,
+  listThreadsPage,
 } from "@/apps/chat/services/chat"
 import { sendChatMessage } from "@/apps/chat/services/agent"
 import type { ChatMessage, ChatThread } from "@/apps/chat/types"
@@ -151,6 +152,23 @@ export const listChatThreadsAction = async () => {
       success: false as const,
       error: error instanceof Error ? error.message : "Failed to load chats.",
       threads: [] as ChatThread[],
+    }
+  }
+}
+
+export const listChatThreadsPageAction = async (page = 1) => {
+  try {
+    const result = await listThreadsPage({ page })
+    return { success: true as const, ...result }
+  } catch (error) {
+    return {
+      success: false as const,
+      error: error instanceof Error ? error.message : "Failed to load chats.",
+      items: [] as ChatThread[],
+      total: 0,
+      page: 1,
+      pageSize: 15,
+      totalPages: 1,
     }
   }
 }

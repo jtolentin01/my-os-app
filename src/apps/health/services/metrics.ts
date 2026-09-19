@@ -10,6 +10,11 @@ import {
   normalizeBodyMetric,
   toMetricNumber,
 } from "@/apps/health/utils/health"
+import {
+  PAGE_SIZE,
+  buildPageResult,
+  getPageRange,
+} from "@/lib/pagination"
 
 export { getCurrentUserId }
 
@@ -35,6 +40,40 @@ export const listMetricsForMonth = async (
 
   return (data ?? []).map((row) =>
     normalizeBodyMetric(row as Record<string, unknown>)
+  )
+}
+
+export const listMetricsForMonthPage = async (
+  monthKey: string = formatMonthKey(),
+  page = 1,
+  pageSize = PAGE_SIZE
+) => {
+  const supabase = await createClient()
+  const userId = await getCurrentUserId()
+  const { start, end } = getMonthBounds(monthKey)
+  const { from, to, page: safePage } = getPageRange(page, pageSize)
+
+  const { data, error, count } = await supabase
+    .from("body_metrics")
+    .select("*", { count: "exact" })
+    .eq("user_id", userId)
+    .gte("logged_on", start)
+    .lte("logged_on", end)
+    .order("logged_on", { ascending: false })
+    .order("created_at", { ascending: false })
+    .range(from, to)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return buildPageResult(
+    (data ?? []).map((row) =>
+      normalizeBodyMetric(row as Record<string, unknown>)
+    ),
+    count ?? 0,
+    safePage,
+    pageSize
   )
 }
 

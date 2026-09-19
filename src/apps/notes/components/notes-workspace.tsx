@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { NoteCard, NoteEditorDialog } from "@/apps/notes/components/note-form"
 import {
@@ -10,11 +10,16 @@ import {
 import type { Note } from "@/apps/notes/types"
 import { Input } from "@/components/ui/input"
 import { buttonVariants } from "@/components/ui/button"
+import { PaginationControls } from "@/platform/components/pagination-controls"
+import { PAGE_SIZE } from "@/lib/pagination"
 import { cn } from "@/lib/utils"
 
 type NotesWorkspaceProps = {
   notes: Note[]
   query?: string
+  page?: number
+  totalPages?: number
+  total?: number
 }
 
 const filterNotes = (notes: Note[], query: string) => {
@@ -27,15 +32,51 @@ const filterNotes = (notes: Note[], query: string) => {
   )
 }
 
-const NotesWorkspaceContent = ({ query = "" }: { query?: string }) => {
+const NotesWorkspaceContent = ({
+  pageNotes,
+  query = "",
+  page = 1,
+  totalPages = 1,
+}: {
+  pageNotes: Note[]
+  query?: string
+  page?: number
+  totalPages?: number
+}) => {
   const router = useRouter()
   const { notes, isOnline, isSyncing, pendingCount } = useNotesOffline()
   const [search, setSearch] = useState(query)
-  const visibleNotes = filterNotes(notes, search)
 
   useEffect(() => {
     setSearch(query)
   }, [query])
+
+  const { visibleNotes, effectivePage, effectiveTotalPages } = useMemo(() => {
+    if (isOnline) {
+      return {
+        visibleNotes: pageNotes,
+        effectivePage: page,
+        effectiveTotalPages: totalPages,
+      }
+    }
+    const filtered = filterNotes(notes, search)
+    const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE) || 1)
+    const safePage = Math.min(Math.max(1, page), pages)
+    const start = (safePage - 1) * PAGE_SIZE
+    return {
+      visibleNotes: filtered.slice(start, start + PAGE_SIZE),
+      effectivePage: safePage,
+      effectiveTotalPages: pages,
+    }
+  }, [isOnline, pageNotes, notes, search, page, totalPages])
+
+  const hrefForPage = (nextPage: number) => {
+    const qs = new URLSearchParams()
+    if (search.trim()) qs.set("q", search.trim())
+    if (nextPage > 1) qs.set("page", String(nextPage))
+    const queryString = qs.toString()
+    return queryString ? `/notes?${queryString}` : "/notes"
+  }
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6">
@@ -76,7 +117,9 @@ const NotesWorkspaceContent = ({ query = "" }: { query?: string }) => {
             const nextQuery = String(formData.get("q") ?? "").trim()
             setSearch(nextQuery)
             if (isOnline) {
-              router.push(nextQuery ? `/notes?q=${encodeURIComponent(nextQuery)}` : "/notes")
+              router.push(
+                nextQuery ? `/notes?q=${encodeURIComponent(nextQuery)}` : "/notes"
+              )
             }
           }}
         >
@@ -120,20 +163,37 @@ const NotesWorkspaceContent = ({ query = "" }: { query?: string }) => {
           </p>
         </div>
       ) : (
-        <div className="grid min-w-0 gap-3">
-          {visibleNotes.map((note) => (
-            <NoteCard key={note.id} note={note} />
-          ))}
-        </div>
+        <>
+          <div className="grid min-w-0 gap-3">
+            {visibleNotes.map((note) => (
+              <NoteCard key={note.id} note={note} />
+            ))}
+          </div>
+          <PaginationControls
+            page={effectivePage}
+            totalPages={effectiveTotalPages}
+            hrefForPage={hrefForPage}
+          />
+        </>
       )}
     </div>
   )
 }
 
-export const NotesWorkspace = ({ notes, query = "" }: NotesWorkspaceProps) => {
+export const NotesWorkspace = ({
+  notes,
+  query = "",
+  page = 1,
+  totalPages = 1,
+}: NotesWorkspaceProps) => {
   return (
     <NotesOfflineProvider initialNotes={notes}>
-      <NotesWorkspaceContent query={query} />
+      <NotesWorkspaceContent
+        pageNotes={notes}
+        query={query}
+        page={page}
+        totalPages={totalPages}
+      />
     </NotesOfflineProvider>
   )
 }
