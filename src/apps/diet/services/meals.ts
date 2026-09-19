@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserId } from "@/lib/supabase/auth"
 import type { Meal, MealPlan, MealPlanWithMeals } from "@/apps/diet/types"
 import {
   formatWeekStart,
@@ -8,18 +9,7 @@ import {
 } from "@/apps/diet/utils/week"
 import { parseISO } from "date-fns"
 
-export const getCurrentUserId = async () => {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error("Unauthorized")
-  }
-
-  return user.id
-}
+export { getCurrentUserId }
 
 export const getOrCreateMealPlan = async (
   weekStart?: string

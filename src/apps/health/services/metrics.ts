@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserId } from "@/lib/supabase/auth"
 import type {
   CreateBodyMetricInput,
   UpdateBodyMetricInput,
@@ -10,18 +11,7 @@ import {
   toMetricNumber,
 } from "@/apps/health/utils/health"
 
-export const getCurrentUserId = async () => {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error("Unauthorized")
-  }
-
-  return user.id
-}
+export { getCurrentUserId }
 
 export const listMetricsForMonth = async (
   monthKey: string = formatMonthKey()

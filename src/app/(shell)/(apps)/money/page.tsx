@@ -47,20 +47,27 @@ const MoneyPage = async ({ searchParams }: MoneyPageProps) => {
   let loadError = ""
   let debtsError = ""
 
-  try {
-    transactions = await listTransactionsForMonth(monthKey)
+  const [transactionsResult, debtsResult] = await Promise.allSettled([
+    listTransactionsForMonth(monthKey),
+    listDebts({ status: "all", withInstallments: true }),
+  ])
+
+  if (transactionsResult.status === "fulfilled") {
+    transactions = transactionsResult.value
     summary = summarizeTransactions(transactions, DEFAULT_CURRENCY)
-  } catch (error) {
+  } else {
+    const error = transactionsResult.reason
     loadError =
       error instanceof Error
         ? error.message
         : "Unable to load your money data. Make sure the database migration has been applied."
   }
 
-  try {
-    debts = await listDebts({ status: "all", withInstallments: true })
+  if (debtsResult.status === "fulfilled") {
+    debts = debtsResult.value
     debtSummary = summarizeDebts(debts, DEFAULT_CURRENCY)
-  } catch (error) {
+  } else {
+    const error = debtsResult.reason
     debtsError =
       error instanceof Error
         ? error.message

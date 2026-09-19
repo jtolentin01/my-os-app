@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/server"
+import { getAuthProfile } from "@/lib/supabase/auth"
 import { getEnabledApps } from "@/platform/config/apps.registry"
 import { getOrCreateMealPlan } from "@/apps/diet/services/meals"
 import { getUpcomingMeals } from "@/apps/diet/utils/upcoming"
@@ -77,16 +77,9 @@ const emptyDebtSummary = (): DebtSummary => ({
 })
 
 const DashboardPage = async () => {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name, avatar_url")
-    .eq("id", user!.id)
-    .maybeSingle()
+  const auth = await getAuthProfile()
+  const user = auth?.user
+  const profile = auth?.profile
 
   const displayName =
     profile?.display_name ||
@@ -112,65 +105,60 @@ const DashboardPage = async () => {
   let lifeProfile: Awaited<ReturnType<typeof getLifeProfile>> = null
   let latestLifeReport: Awaited<ReturnType<typeof getLatestReport>> = null
 
-  try {
-    const plan = await getOrCreateMealPlan()
-    upcomingMeals = getUpcomingMeals(plan, 4)
-    weekLabel = formatWeekRange(plan.week_start)
-  } catch {
-    upcomingMeals = []
-  }
-
-  try {
-    recentNotes = await getRecentNotes(3)
-  } catch {
-    recentNotes = []
-  }
-
-  try {
-    const monthTransactions = await listTransactionsForMonth()
-    monthSummary = summarizeTransactions(monthTransactions)
-    recentTransactions = monthTransactions.slice(0, 3)
-    monthLabel = formatMonthLabel(formatMonthKey())
-    moneyLoaded = true
-  } catch {
-    recentTransactions = []
-  }
-
-  try {
-    debtSummary = await getDebtSummary()
-    moneyLoaded = true
-  } catch {
-    debtSummary = emptyDebtSummary()
-  }
-
-  try {
-    dueSoonDebts = await getDueSoonDebts(3)
-  } catch {
-    dueSoonDebts = []
-  }
-
-  try {
-    const [weight, height, workouts] = await Promise.all([
+  const [
+    mealsResult,
+    notesResult,
+    transactionsResult,
+    debtSummaryResult,
+    dueSoonResult,
+    healthResult,
+    lifeResult,
+  ] = await Promise.allSettled([
+    getOrCreateMealPlan(),
+    getRecentNotes(3),
+    listTransactionsForMonth(),
+    getDebtSummary(),
+    getDueSoonDebts(3),
+    Promise.all([
       getLatestWeightKg(),
       getLatestHeightCm(),
       getRecentWorkouts(3),
-    ])
-    latestWeightKg = weight
-    latestHeightCm = height
-    recentWorkouts = workouts
-    healthLoaded = true
-  } catch {
-    recentWorkouts = []
+    ]),
+    Promise.all([getLifeProfile(), getLatestReport()]),
+  ])
+
+  if (mealsResult.status === "fulfilled") {
+    upcomingMeals = getUpcomingMeals(mealsResult.value, 4)
+    weekLabel = formatWeekRange(mealsResult.value.week_start)
   }
 
-  try {
-    ;[lifeProfile, latestLifeReport] = await Promise.all([
-      getLifeProfile(),
-      getLatestReport(),
-    ])
-  } catch {
-    lifeProfile = null
-    latestLifeReport = null
+  if (notesResult.status === "fulfilled") {
+    recentNotes = notesResult.value
+  }
+
+  if (transactionsResult.status === "fulfilled") {
+    monthSummary = summarizeTransactions(transactionsResult.value)
+    recentTransactions = transactionsResult.value.slice(0, 3)
+    monthLabel = formatMonthLabel(formatMonthKey())
+    moneyLoaded = true
+  }
+
+  if (debtSummaryResult.status === "fulfilled") {
+    debtSummary = debtSummaryResult.value
+    moneyLoaded = true
+  }
+
+  if (dueSoonResult.status === "fulfilled") {
+    dueSoonDebts = dueSoonResult.value
+  }
+
+  if (healthResult.status === "fulfilled") {
+    ;[latestWeightKg, latestHeightCm, recentWorkouts] = healthResult.value
+    healthLoaded = true
+  }
+
+  if (lifeResult.status === "fulfilled") {
+    ;[lifeProfile, latestLifeReport] = lifeResult.value
   }
 
   const apps = getEnabledApps()

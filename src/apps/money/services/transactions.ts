@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserId } from "@/lib/supabase/auth"
 import type {
   CreateTransactionInput,
   UpdateTransactionInput,
@@ -11,18 +12,7 @@ import {
 } from "@/apps/money/utils/money"
 import { formatMonthKey, getMonthBounds } from "@/apps/money/utils/month"
 
-export const getCurrentUserId = async () => {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error("Unauthorized")
-  }
-
-  return user.id
-}
+export { getCurrentUserId }
 
 export const listTransactionsForMonth = async (
   monthKey: string = formatMonthKey()

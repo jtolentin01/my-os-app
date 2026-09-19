@@ -1,22 +1,10 @@
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserId } from "@/lib/supabase/auth"
 import type {
   DeleteMemoryInput,
   SaveMemoryInput,
 } from "@/platform/memory/schemas"
 import type { UserMemory } from "@/platform/memory/types"
-
-const getCurrentUserId = async () => {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error("Unauthorized")
-  }
-
-  return user.id
-}
 
 export const listMemories = async (limit = 100): Promise<UserMemory[]> => {
   const supabase = await createClient()

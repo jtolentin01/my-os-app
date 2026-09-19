@@ -5,17 +5,14 @@ import { listChatModels } from "@/platform/ai/list-models"
 import { pickDefaultModelId } from "@/platform/ai/models"
 
 const ChatPage = async () => {
-  let threads: Awaited<ReturnType<typeof listThreads>> = []
-  let initialMessages: ChatMessage[] = []
+  const [threadsResult, models] = await Promise.all([
+    listThreads().catch(() => [] as Awaited<ReturnType<typeof listThreads>>),
+    listChatModels(),
+  ])
 
-  try {
-    threads = await listThreads()
-  } catch {
-    threads = []
-  }
-
-  const models = await listChatModels()
+  const threads = threadsResult
   const initialThreadId = threads[0]?.id ?? null
+  let initialMessages: ChatMessage[] = []
 
   if (initialThreadId) {
     try {

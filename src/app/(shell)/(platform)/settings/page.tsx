@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
+import { getAuthProfile } from "@/lib/supabase/auth"
 import { ThemeSelector } from "@/platform/theme/theme-selector"
 import { AccentSelector } from "@/platform/theme/accent-selector"
 import { InstallAppCard } from "@/platform/pwa/install-app-card"
@@ -27,44 +28,37 @@ import {
 } from "@/components/ui/card"
 
 const SettingsPage = async () => {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const auth = await getAuthProfile()
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name, avatar_url, created_at")
-    .eq("id", user!.id)
-    .maybeSingle()
+  if (!auth?.user) {
+    redirect("/login")
+  }
 
+  const { user, profile } = auth
   const displayName =
     profile?.display_name ||
-    user?.user_metadata?.display_name ||
-    user?.email?.split("@")[0] ||
+    user.user_metadata?.display_name ||
+    user.email?.split("@")[0] ||
     "User"
 
   let memories: UserMemory[] = []
-  let reportPreferences: ReportPreferences = defaultReportPreferences(user!.id)
+  let reportPreferences: ReportPreferences = defaultReportPreferences(user.id)
   let lifeProfile: UserLifeProfile | null = null
   let latestReport: UserReport | null = null
 
-  try {
-    memories = await listMemories()
-  } catch {
-    memories = []
+  const [memoriesResult, lifeResult] = await Promise.allSettled([
+    listMemories(),
+    Promise.all([getReportPreferences(), getLifeProfile(), getLatestReport()]),
+  ])
+
+  if (memoriesResult.status === "fulfilled") {
+    memories = memoriesResult.value
   }
 
-  try {
-    ;[reportPreferences, lifeProfile, latestReport] = await Promise.all([
-      getReportPreferences(),
-      getLifeProfile(),
-      getLatestReport(),
-    ])
-  } catch {
-    reportPreferences = defaultReportPreferences(user!.id)
-    lifeProfile = null
-    latestReport = null
+  if (lifeResult.status === "fulfilled") {
+    ;[reportPreferences, lifeProfile, latestReport] = lifeResult.value
+  } else {
+    reportPreferences = defaultReportPreferences(user.id)
   }
 
   return (
@@ -83,7 +77,7 @@ const SettingsPage = async () => {
         </CardHeader>
         <CardContent className="flex flex-col gap-4 text-sm">
           <AvatarUploader
-            userId={user!.id}
+            userId={user.id}
             displayName={displayName}
             avatarUrl={profile?.avatar_url}
           />
@@ -93,7 +87,7 @@ const SettingsPage = async () => {
           </div>
           <div className="flex items-center justify-between gap-4 border-b pb-3">
             <span className="text-muted-foreground">Email</span>
-            <span className="font-medium">{user?.email}</span>
+            <span className="font-medium">{user.email}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
             <span className="text-muted-foreground">Member since</span>

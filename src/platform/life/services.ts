@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { getCurrentUserId } from "@/lib/supabase/auth"
 import { DEFAULT_LIFE_TIMEZONE } from "@/platform/life/date"
 import type {
   DietAssessment,
@@ -16,19 +17,6 @@ import type {
 import { LIFE_APPS } from "@/platform/life/types"
 import type { LifeGenerationResult } from "@/platform/life/schemas"
 import type { LifeStats } from "@/platform/life/types"
-
-const getCurrentUserId = async () => {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error("Unauthorized")
-  }
-
-  return user.id
-}
 
 const asStringArray = (value: unknown): string[] => {
   if (!Array.isArray(value)) return []

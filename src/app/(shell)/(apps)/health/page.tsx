@@ -53,24 +53,28 @@ const HealthPage = async ({ searchParams }: HealthPageProps) => {
   let loadError = ""
   let workoutsError = ""
 
-  try {
-    const [monthMetrics, latestHeightCm] = await Promise.all([
-      listMetricsForMonth(monthKey),
-      getLatestHeightCm(),
-    ])
+  const [metricsResult, workoutsResult] = await Promise.allSettled([
+    Promise.all([listMetricsForMonth(monthKey), getLatestHeightCm()]),
+    listWorkoutsForMonth(monthKey),
+  ])
+
+  if (metricsResult.status === "fulfilled") {
+    const [monthMetrics, latestHeightCm] = metricsResult.value
     metrics = monthMetrics
     metricsSummary = summarizeMetrics(monthMetrics, latestHeightCm)
-  } catch (error) {
+  } else {
+    const error = metricsResult.reason
     loadError =
       error instanceof Error
         ? error.message
         : "Unable to load your health metrics. Make sure the database migration has been applied."
   }
 
-  try {
-    workouts = await listWorkoutsForMonth(monthKey)
+  if (workoutsResult.status === "fulfilled") {
+    workouts = workoutsResult.value
     workoutsSummary = summarizeWorkouts(workouts)
-  } catch (error) {
+  } else {
+    const error = workoutsResult.reason
     workoutsError =
       error instanceof Error
         ? error.message

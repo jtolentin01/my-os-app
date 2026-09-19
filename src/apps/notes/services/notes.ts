@@ -1,21 +1,11 @@
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserId } from "@/lib/supabase/auth"
 import type { Note } from "@/apps/notes/types"
 import type { CreateNoteInput, UpdateNoteInput } from "@/apps/notes/schemas/note"
 import { isCreatedOnPastDay } from "@/apps/notes/utils/dates"
 import { sanitizeNoteHtml } from "@/apps/notes/utils/sanitize"
 
-export const getCurrentUserId = async () => {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error("Unauthorized")
-  }
-
-  return user.id
-}
+export { getCurrentUserId }
 
 export const listNotes = async (query?: string): Promise<Note[]> => {
   const supabase = await createClient()

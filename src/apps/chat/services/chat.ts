@@ -1,18 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
+import { getCurrentUserId } from "@/lib/supabase/auth"
 import type { ChatMessage, ChatThread } from "@/apps/chat/types"
-
-const getCurrentUserId = async () => {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error("Unauthorized")
-  }
-
-  return user.id
-}
 
 export const listThreads = async (): Promise<ChatThread[]> => {
   const supabase = await createClient()

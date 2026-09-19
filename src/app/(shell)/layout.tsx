@@ -1,23 +1,15 @@
 import { redirect } from "next/navigation"
-import { createClient } from "@/lib/supabase/server"
+import { getAuthProfile } from "@/lib/supabase/auth"
 import { AppShell } from "@/platform/components/app-shell"
 
-const PlatformLayout = async ({ children }: { children: React.ReactNode }) => {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+const ShellLayout = async ({ children }: { children: React.ReactNode }) => {
+  const auth = await getAuthProfile()
 
-  if (!user) {
+  if (!auth?.user) {
     redirect("/login")
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name, avatar_url")
-    .eq("id", user.id)
-    .maybeSingle()
-
+  const { user, profile } = auth
   const displayName =
     profile?.display_name ||
     user.user_metadata?.display_name ||
@@ -35,4 +27,4 @@ const PlatformLayout = async ({ children }: { children: React.ReactNode }) => {
   )
 }
 
-export default PlatformLayout
+export default ShellLayout

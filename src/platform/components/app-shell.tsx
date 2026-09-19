@@ -1,11 +1,19 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { usePathname } from "next/navigation"
 import { Sidebar } from "@/platform/components/sidebar"
-import { VoiceAssistantFab } from "@/platform/assistant/voice-assistant-fab"
 import { OfflineMessage } from "@/platform/offline/offline-message"
 import { useHasMounted, useOnlineStatus } from "@/platform/offline/use-online-status"
 import { cn } from "@/lib/utils"
+
+const VoiceAssistantFab = dynamic(
+  () =>
+    import("@/platform/assistant/voice-assistant-fab").then((mod) => ({
+      default: mod.VoiceAssistantFab,
+    })),
+  { ssr: false }
+)
 
 type AppShellProps = {
   children: React.ReactNode
